@@ -9,8 +9,137 @@ struct AppDetailsModel: Codable {
     let description: String
     let version: String
     let versionCode: Int
-    let iconUrl: String?
-    let category: String?
+    let iconUrl: String?        )
+    }
+    
+    /// Map package name to SF Symbol icon name
+    private func iconNameFromPackage(_ packageName: String) -> String {
+        let lowercaseName = packageName.lowercased()
+        
+        if lowercaseName.contains("secure") || lowercaseName.contains("security") {
+            return "shield.fill"
+        } else if lowercaseName.contains("communication") || lowercaseName.contains("chat") || lowercaseName.contains("message") {
+            return "message.fill"
+        } else if lowercaseName.contains("finance") || lowercaseName.contains("banking") || lowercaseName.contains("money") {
+            return "creditcard.fill"
+        } else if lowercaseName.contains("development") || lowercaseName.contains("code") || lowercaseName.contains("developer") {
+            return "hammer.fill"
+        } else if lowercaseName.contains("productivity") || lowercaseName.contains("office") {
+            return "doc.text.fill"
+        } else if lowercaseName.contains("media") || lowercaseName.contains("video") || lowercaseName.contains("photo") {
+            return "play.rectangle.fill"
+        } else if lowercaseName.contains("game") {
+            return "gamecontroller.fill"
+        } else if lowercaseName.contains("social") {
+            return "person.2.fill"
+        } else if lowercaseName.contains("travel") {
+            return "airplane"
+        } else if lowercaseName.contains("health") || lowercaseName.contains("fitness") {
+            return "heart.fill"
+        } else if lowercaseName.contains("education") || lowercaseName.contains("learning") {
+            return "book.fill"
+        } else if lowercaseName.contains("news") {
+            return "newspaper.fill"
+        } else if lowercaseName.contains("weather") {
+            return "cloud.sun.fill"
+        } else if lowercaseName.contains("music") || lowercaseName.contains("audio") {
+            return "music.note"
+        } else if lowercaseName.contains("shopping") || lowercaseName.contains("store") {
+            return "bag.fill"
+        } else {
+            return "app.fill"
+        }
+    }
+    
+    // MARK: - Mock Data for Development
+    
+    private func mockApps(search: String? = nil, category: String? = nil) -> [AppModel] {
+        let allApps = [
+            AppModel(
+                id: UUID(),
+                name: "Secure Notes",
+                description: "Encrypted note-taking application with zero-knowledge architecture",
+                iconName: "lock.doc.fill"
+            ),
+            AppModel(
+                id: UUID(),
+                name: "Enterprise Email",
+                description: "Secure email client with advanced encryption and compliance features",
+                iconName: "envelope.fill"
+            ),
+            AppModel(
+                id: UUID(),
+                name: "Code Editor Pro",
+                description: "Professional code editor with syntax highlighting and debugging tools",
+                iconName: "curlybraces"
+            ),
+            AppModel(
+                id: UUID(),
+                name: "Financial Dashboard",
+                description: "Real-time financial data and analytics platform",
+                iconName: "chart.line.uptrend.xyaxis"
+            ),
+            AppModel(
+                id: UUID(),
+                name: "Team Chat",
+                description: "Secure team communication with file sharing and video calls",
+                iconName: "message.badge.filled.fill"
+            ),
+            AppModel(
+                id: UUID(),
+                name: "Document Vault",
+                description: "Secure document storage with advanced sharing controls",
+                iconName: "folder.fill.badge.plus"
+            ),
+            AppModel(
+                id: UUID(),
+                name: "Remote Desktop",
+                description: "Secure remote access to desktop environments",
+                iconName: "desktopcomputer"
+            ),
+            AppModel(
+                id: UUID(),
+                name: "VPN Manager",
+                description: "Enterprise VPN management and monitoring tool",
+                iconName: "network.badge.shield.half.filled"
+            )
+        ]
+        
+        var filteredApps = allApps
+        
+        // Apply search filter
+        if let search = search, !search.isEmpty {
+            filteredApps = filteredApps.filter { app in
+                app.name.localizedCaseInsensitiveContains(search) ||
+                app.description.localizedCaseInsensitiveContains(search)
+            }
+        }
+        
+        // Apply category filter (basic implementation)
+        if let category = category {
+            filteredApps = filteredApps.filter { app in
+                switch category.lowercased() {
+                case "security":
+                    return app.name.localizedCaseInsensitiveContains("secure") ||
+                           app.name.localizedCaseInsensitiveContains("vpn")
+                case "productivity":
+                    return app.name.localizedCaseInsensitiveContains("notes") ||
+                           app.name.localizedCaseInsensitiveContains("document") ||
+                           app.name.localizedCaseInsensitiveContains("code")
+                case "communication":
+                    return app.name.localizedCaseInsensitiveContains("email") ||
+                           app.name.localizedCaseInsensitiveContains("chat")
+                case "finance":
+                    return app.name.localizedCaseInsensitiveContains("financial")
+                default:
+                    return true
+                }
+            }
+        }
+        
+        return filteredApps
+    }
+}tegory: String?
     let developer: String?
     let size: Int?
     let isSystem: Bool
@@ -19,13 +148,21 @@ struct AppDetailsModel: Codable {
     let lastUpdated: String
 }
 
-class AppCatalogService {
+class AppCatalogService: ObservableObject {
     static let shared = AppCatalogService()
     private let networkService = NetworkService.shared
+    private let supabaseDatabase = SupabaseDatabaseService.shared
+    private var cancellables = Set<AnyCancellable>()
+    
+    /// Published properties for reactive UI updates
+    @Published var availableApps: [AppModel] = []
+    @Published var userInstalledApps: [AppModel] = []
+    @Published var categories: [String] = []
+    @Published var isLoading = false
     
     private init() {}
     
-    /// Fetch available apps, optionally filtered
+    /// Fetch available apps, optionally filtered - now uses Supabase
     func fetchAvailableApps(category: String? = nil, search: String? = nil) -> AnyPublisher<[AppModel], APIError> {
         #if DEBUG
         // For demo/testing, use mock data
@@ -38,38 +175,68 @@ class AppCatalogService {
         }
         #endif
         
-        var endpoint = "\(APIConfig.appsEndpoint)/apps"
-        var queryParams = [String]()
+        isLoading = true
         
-        if let category = category {
-            queryParams.append("category=\(category)")
+        let publisher: AnyPublisher<[SupabaseAppCatalogItem], SupabaseError>
+        
+        if let search = search, !search.isEmpty {
+            // Search apps
+            publisher = supabaseDatabase.searchApps(query: search)
+        } else if let category = category {
+            // Filter by category
+            publisher = supabaseDatabase.fetchAppCatalog(category: category)
+        } else {
+            // Fetch all apps
+            publisher = supabaseDatabase.fetchAppCatalog()
         }
         
-        if let search = search {
-            queryParams.append("search=\(search)")
-        }
-        
-        if !queryParams.isEmpty {
-            endpoint += "?\(queryParams.joined(separator: "&"))"
-        }
-        
-        return networkService.request(
-            endpoint: endpoint
-        )
-        .map { (appDetails: [AppDetailsModel]) -> [AppModel] in
-            return appDetails.map { details in
-                return AppModel(
-                    id: UUID(uuidString: details.id) ?? UUID(),
-                    name: details.name,
-                    description: details.description,
-                    iconName: self.iconNameFromPackage(details.packageName) // Map from package to SF Symbol
-                )
+        return publisher
+            .map { supabaseApps in
+                supabaseApps.map { self.convertSupabaseAppToAppModel($0) }
             }
-        }
-        .eraseToAnyPublisher()
+            .mapError { supabaseError in
+                APIError.badRequest(supabaseError.localizedDescription)
+            }
+            .handleEvents(
+                receiveOutput: { [weak self] apps in
+                    DispatchQueue.main.async {
+                        self?.availableApps = apps
+                        self?.isLoading = false
+                    }
+                },
+                receiveCompletion: { [weak self] _ in
+                    DispatchQueue.main.async {
+                        self?.isLoading = false
+                    }
+                }
+            )
     }
     
-    /// Get app details
+    /// Fetch app categories - now uses Supabase
+    func getCategories() -> AnyPublisher<[String], APIError> {
+        #if DEBUG
+        // For demo/testing, use mock data
+        if networkService.getAuthToken()?.starts(with: "demo_token_") ?? false {
+            return Just(["Productivity", "Security", "Communication", "Development", "Finance"])
+                .delay(for: .seconds(0.5), scheduler: RunLoop.main)
+                .setFailureType(to: APIError.self)
+                .eraseToAnyPublisher()
+        }
+        #endif
+        
+        return supabaseDatabase.fetchAppCategories()
+            .mapError { supabaseError in
+                APIError.badRequest(supabaseError.localizedDescription)
+            }
+            .handleEvents(receiveOutput: { [weak self] categories in
+                DispatchQueue.main.async {
+                    self?.categories = categories
+                }
+            })
+            .eraseToAnyPublisher()
+    }
+    
+    /// Get app details - now uses Supabase
     func getAppDetails(appId: String) -> AnyPublisher<AppDetailsModel, APIError> {
         #if DEBUG
         // For demo/testing, use mock data
@@ -105,15 +272,130 @@ class AppCatalogService {
         }
         #endif
         
-        return networkService.request(
-            endpoint: "\(APIConfig.appsEndpoint)/apps/\(appId)"
+        return supabaseDatabase.fetchAppCatalog()
+            .map { apps in
+                apps.first { $0.id == appId }
+            }
+            .tryMap { app in
+                guard let app = app else {
+                    throw SupabaseError(error: "app_not_found", errorDescription: nil, message: "App not found")
+                }
+                return self.convertSupabaseAppToAppDetailsModel(app)
+            }
+            .mapError { error in
+                if let supabaseError = error as? SupabaseError {
+                    return APIError.badRequest(supabaseError.localizedDescription)
+                }
+                return APIError.badRequest(error.localizedDescription)
+            }
+            .eraseToAnyPublisher()
+    }
+    
+    /// Install app for current user - new Supabase method
+    func installApp(appId: String) -> AnyPublisher<Bool, APIError> {
+        guard let userId = SupabaseAuthService.shared.currentUser?.id else {
+            return Fail(error: APIError.unauthorized).eraseToAnyPublisher()
+        }
+        
+        return supabaseDatabase.installApp(userId: userId, appId: appId)
+            .map { _ in true }
+            .mapError { supabaseError in
+                APIError.badRequest(supabaseError.localizedDescription)
+            }
+            .handleEvents(receiveOutput: { [weak self] _ in
+                // Refresh user installed apps
+                self?.fetchUserInstalledApps()
+            })
+            .eraseToAnyPublisher()
+    }
+    
+    /// Uninstall app for current user - new Supabase method
+    func uninstallApp(appId: String) -> AnyPublisher<Bool, APIError> {
+        guard let userId = SupabaseAuthService.shared.currentUser?.id else {
+            return Fail(error: APIError.unauthorized).eraseToAnyPublisher()
+        }
+        
+        return supabaseDatabase.uninstallApp(userId: userId, appId: appId)
+            .map { true }
+            .mapError { supabaseError in
+                APIError.badRequest(supabaseError.localizedDescription)
+            }
+            .handleEvents(receiveOutput: { [weak self] _ in
+                // Refresh user installed apps
+                self?.fetchUserInstalledApps()
+            })
+            .eraseToAnyPublisher()
+    }
+    
+    /// Fetch user's installed apps - new Supabase method
+    func fetchUserInstalledApps() {
+        guard let userId = SupabaseAuthService.shared.currentUser?.id else {
+            return
+        }
+        
+        supabaseDatabase.fetchUserApps(for: userId)
+            .sink(
+                receiveCompletion: { completion in
+                    if case .failure(let error) = completion {
+                        print("Failed to fetch user apps: \(error.localizedDescription)")
+                    }
+                },
+                receiveValue: { [weak self] installations in
+                    // Convert installations to AppModels
+                    let appIds = installations.map { $0.appId }
+                    
+                    // Fetch app details for installed apps
+                    self?.supabaseDatabase.fetchAppCatalog()
+                        .map { apps in
+                            apps.filter { appIds.contains($0.id) }
+                                .map { self?.convertSupabaseAppToAppModel($0) }
+                                .compactMap { $0 }
+                        }
+                        .sink(
+                            receiveCompletion: { _ in },
+                            receiveValue: { apps in
+                                DispatchQueue.main.async {
+                                    self?.userInstalledApps = apps
+                                }
+                            }
+                        )
+                        .store(in: &self?.cancellables ?? Set<AnyCancellable>())
+                }
+            )
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Helper Methods
+    
+    /// Convert Supabase app to AppModel
+    private func convertSupabaseAppToAppModel(_ supabaseApp: SupabaseAppCatalogItem) -> AppModel {
+        return AppModel(
+            id: UUID(uuidString: supabaseApp.id) ?? UUID(),
+            name: supabaseApp.name,
+            description: supabaseApp.description ?? "No description available",
+            iconName: iconNameFromPackage(supabaseApp.name)
         )
     }
     
-    /// Get available app categories
-    func getCategories() -> AnyPublisher<[String], APIError> {
-        #if DEBUG
-        // For demo/testing, use mock data
+    /// Convert Supabase app to AppDetailsModel
+    private func convertSupabaseAppToAppDetailsModel(_ supabaseApp: SupabaseAppCatalogItem) -> AppDetailsModel {
+        return AppDetailsModel(
+            id: supabaseApp.id,
+            name: supabaseApp.name,
+            packageName: "com.shaydz.avmo.\(supabaseApp.name.lowercased().replacingOccurrences(of: " ", with: ""))",
+            description: supabaseApp.description ?? "No description available",
+            version: supabaseApp.version,
+            versionCode: 1,
+            iconUrl: supabaseApp.iconUrl,
+            category: supabaseApp.category,
+            developer: "ShaydZ Inc.",
+            size: nil,
+            isSystem: false,
+            isApproved: supabaseApp.isActive,
+            uploadedAt: supabaseApp.createdAt,
+            lastUpdated: supabaseApp.updatedAt
+        )
+    }
         if networkService.getAuthToken()?.starts(with: "demo_token_") ?? false {
             return Just(["Productivity", "Security", "Communication", "Finance", "Human Resources"])
                 .delay(for: .seconds(0.5), scheduler: RunLoop.main)

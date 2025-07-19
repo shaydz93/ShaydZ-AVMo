@@ -19,20 +19,48 @@ struct UserProfile: Codable {
     let createdAt: String
 }
 
-class AuthenticationService {
+class AuthenticationService: ObservableObject {
     static let shared = AuthenticationService()
     private let networkService = NetworkService.shared
+    private let supabaseAuth = SupabaseAuthService.shared
     private var cancellables = Set<AnyCancellable>()
     
-    private init() {}
+    /// Published properties for reactive UI updates
+    @Published var isAuthenticated = false
+    @Published var currentUser: UserProfile?
     
-    /// Login with username and password
+    private init() {
+        // Observe Supabase authentication state
+        supabaseAuth.$isAuthenticated
+            .assign(to: \.isAuthenticated, on: self)
+            .store(in: &cancellables)
+        
+        // Convert Supabase user profile to local UserProfile
+        supabaseAuth.$userProfile
+            .compactMap { profile in
+                guard let profile = profile else { return nil }
+                return UserProfile(
+                    id: profile.id,
+                    username: profile.username ?? profile.email ?? "Unknown",
+                    email: profile.email ?? "",
+                    firstName: profile.firstName,
+                    lastName: profile.lastName,
+                    role: profile.role,
+                    isActive: profile.isActive,
+                    biometricEnabled: profile.biometricEnabled,
+                    lastLogin: profile.lastLogin,
+                    createdAt: profile.createdAt
+                )
+            }
+            .assign(to: \.currentUser, on: self)
+            .store(in: &cancellables)
+    }
+    
+    /// Login with username and password - now uses Supabase
     func login(username: String, password: String) -> AnyPublisher<Bool, APIError> {
-        // In a production environment, this would use the API
+        // For demo/testing purposes, support the hardcoded demo account
         #if DEBUG
-        // For demo/testing purposes, also support the hardcoded demo account
         if username.lowercased() == "demo" && password == "password" {
-            // Create a fake token
             let fakeToken = "demo_token_\(Int(Date().timeIntervalSince1970))"
             networkService.saveAuthToken(fakeToken)
             return Just(true)
@@ -41,110 +69,139 @@ class AuthenticationService {
         }
         #endif
         
-        let credentials = ["username": username, "password": password]
-        
-        guard let body = try? JSONEncoder().encode(credentials) else {
-            return Fail(error: APIError.unknown).eraseToAnyPublisher()
-        }
-        
-        return networkService.request(
-            endpoint: "\(APIConfig.authEndpoint)/login",
-            method: "POST",
-            body: body,
-            requiresAuth: false
-        )
-        .map { (response: LoginResponse) -> Bool in
-            // Store token
-            self.networkService.saveAuthToken(response.token)
-            return true
-        }
-        .eraseToAnyPublisher()
+        // Use Supabase for authentication
+        return supabaseAuth.signIn(email: username, password: password)
+            .map { _ in true }
+            .mapError { supabaseError in
+                // Convert Supabase errors to APIError
+                switch supabaseError.error {
+                case "invalid_credentials":
+                    return APIError.unauthorized
+                case "network_error":
+                    return APIError.networkError
+                default:
+                    return APIError.badRequest(supabaseError.localizedDescription)
+                }
+            }
+            .eraseToAnyPublisher()
     }
     
-    /// Register a new user
+    /// Sign up with email and password - new Supabase method
+    func signUp(email: String, password: String, firstName: String? = nil, lastName: String? = nil) -> AnyPublisher<Bool, APIError> {
+        var metadata: [String: Any] = [:]
+        if let firstName = firstName {
+            metadata["first_name"] = firstName
+        }
+        if let lastName = lastName {
+            metadata["last_name"] = lastName
+        }
+        
+        return supabaseAuth.signUp(email: email, password: password, metadata: metadata.isEmpty ? nil : metadata)
+            .map { _ in true }
+            .mapError { supabaseError in
+                switch supabaseError.error {
+                case "email_already_exists":
+                    return APIError.badRequest("Email already exists")
+                case "weak_password":
+                    return APIError.badRequest("Password is too weak")
+                case "network_error":
+                    return APIError.networkError
+                default:
+                    return APIError.badRequest(supabaseError.localizedDescription)
+                }
+            }
+            .eraseToAnyPublisher()
+    }
+    
+    /// Register a new user (alias for signUp for backward compatibility)
     func register(username: String, email: String, password: String, firstName: String?, lastName: String?) -> AnyPublisher<Bool, APIError> {
-        var userData: [String: String] = [
-            "username": username,
-            "email": email,
-            "password": password
-        ]
-        
-        if let firstName = firstName {
-            userData["firstName"] = firstName
-        }
-        
-        if let lastName = lastName {
-            userData["lastName"] = lastName
-        }
-        
-        guard let body = try? JSONEncoder().encode(userData) else {
-            return Fail(error: APIError.unknown).eraseToAnyPublisher()
-        }
-        
-        return networkService.request(
-            endpoint: "\(APIConfig.authEndpoint)/register",
-            method: "POST",
-            body: body,
-            requiresAuth: false
-        )
-        .map { (_: [String: String]) -> Bool in
-            return true
-        }
-        .eraseToAnyPublisher()
+        return signUp(email: email, password: password, firstName: firstName, lastName: lastName)
     }
     
-    /// Get user profile
+    /// Get user profile - now uses Supabase
     func getUserProfile() -> AnyPublisher<UserProfile, APIError> {
-        return networkService.request(
-            endpoint: "\(APIConfig.authEndpoint)/profile",
-            requiresAuth: true
-        )
+        return supabaseAuth.fetchUserProfile()
+            .map { profile in
+                UserProfile(
+                    id: profile.id,
+                    username: profile.username ?? profile.email ?? "Unknown",
+                    email: profile.email ?? "",
+                    firstName: profile.firstName,
+                    lastName: profile.lastName,
+                    role: profile.role,
+                    isActive: profile.isActive,
+                    biometricEnabled: profile.biometricEnabled,
+                    lastLogin: profile.lastLogin,
+                    createdAt: profile.createdAt
+                )
+            }
+            .mapError { supabaseError in
+                APIError.badRequest(supabaseError.localizedDescription)
+            }
+            .eraseToAnyPublisher()
     }
     
-    /// Update user profile
+    /// Update user profile - now uses Supabase
     func updateProfile(firstName: String?, lastName: String?, email: String?, biometricEnabled: Bool?) -> AnyPublisher<Bool, APIError> {
-        var userData: [String: Any] = [:]
-        
-        if let firstName = firstName {
-            userData["firstName"] = firstName
+        guard let currentProfile = supabaseAuth.userProfile else {
+            return Fail(error: APIError.unauthorized).eraseToAnyPublisher()
         }
         
-        if let lastName = lastName {
-            userData["lastName"] = lastName
-        }
-        
-        if let email = email {
-            userData["email"] = email
-        }
-        
-        if let biometricEnabled = biometricEnabled {
-            userData["biometricEnabled"] = biometricEnabled
-        }
-        
-        guard let body = try? JSONEncoder().encode(userData) else {
-            return Fail(error: APIError.unknown).eraseToAnyPublisher()
-        }
-        
-        return networkService.request(
-            endpoint: "\(APIConfig.authEndpoint)/profile",
-            method: "PUT",
-            body: body,
-            requiresAuth: true
+        let updatedProfile = SupabaseUserProfile(
+            id: currentProfile.id,
+            email: email ?? currentProfile.email,
+            username: currentProfile.username,
+            firstName: firstName ?? currentProfile.firstName,
+            lastName: lastName ?? currentProfile.lastName,
+            displayName: currentProfile.displayName,
+            role: currentProfile.role,
+            isActive: currentProfile.isActive,
+            biometricEnabled: biometricEnabled ?? currentProfile.biometricEnabled,
+            lastLogin: currentProfile.lastLogin,
+            createdAt: currentProfile.createdAt,
+            updatedAt: ISO8601DateFormatter().string(from: Date())
         )
-        .map { (_: [String: String]) -> Bool in
-            return true
-        }
-        .eraseToAnyPublisher()
+        
+        return supabaseAuth.updateUserProfile(updatedProfile)
+            .map { _ in true }
+            .mapError { supabaseError in
+                APIError.badRequest(supabaseError.localizedDescription)
+            }
+            .eraseToAnyPublisher()
     }
     
-    /// Logout
-    func logout() {
-        networkService.clearAuthToken()
+    /// Logout - now uses Supabase
+    func logout() -> AnyPublisher<Bool, APIError> {
+        return supabaseAuth.signOut()
+            .map { true }
+            .mapError { supabaseError in
+                APIError.badRequest(supabaseError.localizedDescription)
+            }
+            .eraseToAnyPublisher()
+    }
+    
+    /// Legacy logout method for backward compatibility
+    func logoutSync() {
+        _ = logout()
+            .sink(
+                receiveCompletion: { _ in },
+                receiveValue: { _ in }
+            )
+    }
+    
+    /// Reset password - new Supabase method
+    func resetPassword(email: String) -> AnyPublisher<Bool, APIError> {
+        return supabaseAuth.resetPassword(email: email)
+            .map { true }
+            .mapError { supabaseError in
+                APIError.badRequest(supabaseError.localizedDescription)
+            }
+            .eraseToAnyPublisher()
     }
     
     /// Check if user is logged in
     func isLoggedIn() -> Bool {
-        return networkService.getAuthToken() != nil
+        return supabaseAuth.isAuthenticated || networkService.getAuthToken() != nil
     }
     
     /// Validate session token
@@ -157,6 +214,12 @@ class AuthenticationService {
                 .eraseToAnyPublisher()
         }
         #endif
+        
+        if supabaseAuth.isAuthenticated {
+            return Just(true)
+                .setFailureType(to: APIError.self)
+                .eraseToAnyPublisher()
+        }
         
         return getUserProfile()
             .map { _ in true }

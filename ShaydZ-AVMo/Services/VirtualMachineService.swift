@@ -37,13 +37,20 @@ enum ConnectionState: Equatable {
     case error(String)
 }
 
-class VirtualMachineService {
+class VirtualMachineService: ObservableObject {
     static let shared = VirtualMachineService()
     private let networkService = NetworkService.shared
+    private let supabaseDatabase = SupabaseDatabaseService.shared
     private var activeVM: VMStatus?
     private var webSocketTask: URLSessionWebSocketTask?
     private var cancellables = Set<AnyCancellable>()
     private var latencyTimer: Timer?
+    
+    /// Published properties for reactive UI updates
+    @Published var connectionState: ConnectionState = .disconnected
+    @Published var currentVMSession: SupabaseVMSession?
+    @Published var vmSessions: [SupabaseVMSession] = []
+    @Published var isLoading = false
     
     // Stream for publishing connection state changes
     private let connectionStateSubject = CurrentValueSubject<ConnectionState, Never>(.disconnected)
@@ -51,9 +58,113 @@ class VirtualMachineService {
     // Stream for publishing latency updates
     private let latencySubject = CurrentValueSubject<Int, Never>(0)
     
-    private init() {}
+    private init() {
+        // Observe connection state changes and publish them
+        connectionStateSubject
+            .assign(to: \.connectionState, on: self)
+            .store(in: &cancellables)
+        
+        // Load user's VM sessions on initialization
+        loadUserVMSessions()
+    }
     
-    /// Launch a new VM instance
+    /// Load user's VM sessions - new Supabase method
+    private func loadUserVMSessions() {
+        guard let userId = SupabaseAuthService.shared.currentUser?.id else {
+            return
+        }
+        
+        isLoading = true
+        
+        supabaseDatabase.fetchVMSessions(for: userId)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    DispatchQueue.main.async {
+                        self?.isLoading = false
+                    }
+                    if case .failure(let error) = completion {
+                        print("Failed to load VM sessions: \(error.localizedDescription)")
+                    }
+                },
+                receiveValue: { [weak self] sessions in
+                    DispatchQueue.main.async {
+                        self?.vmSessions = sessions
+                        // Set current session if there's an active one
+                        self?.currentVMSession = sessions.first { $0.status == "running" }
+                    }
+                }
+            )
+            .store(in: &cancellables)
+    }
+    
+    /// Create VM session in Supabase
+    private func createVMSession(vmId: String, connectionInfo: VMConnectionInfo?) -> AnyPublisher<SupabaseVMSession, SupabaseError> {
+        guard let userId = SupabaseAuthService.shared.currentUser?.id else {
+            return Fail(error: SupabaseError(error: "not_authenticated", errorDescription: nil, message: "User not authenticated"))
+                .eraseToAnyPublisher()
+        }
+        
+        let session = SupabaseVMSession(
+            id: UUID().uuidString,
+            userId: userId,
+            vmInstanceId: vmId,
+            status: "starting",
+            startedAt: ISO8601DateFormatter().string(from: Date()),
+            endedAt: nil,
+            ipAddress: connectionInfo?.ip,
+            port: connectionInfo?.port,
+            connectionUrl: connectionInfo?.websocketUrl,
+            createdAt: ISO8601DateFormatter().string(from: Date()),
+            updatedAt: ISO8601DateFormatter().string(from: Date())
+        )
+        
+        return supabaseDatabase.createVMSession(session)
+    }
+    
+    /// Update VM session status
+    private func updateVMSessionStatus(_ sessionId: String, status: String) {
+        guard let session = vmSessions.first(where: { $0.id == sessionId }) else {
+            return
+        }
+        
+        let updatedSession = SupabaseVMSession(
+            id: session.id,
+            userId: session.userId,
+            vmInstanceId: session.vmInstanceId,
+            status: status,
+            startedAt: session.startedAt,
+            endedAt: status == "ended" ? ISO8601DateFormatter().string(from: Date()) : session.endedAt,
+            ipAddress: session.ipAddress,
+            port: session.port,
+            connectionUrl: session.connectionUrl,
+            createdAt: session.createdAt,
+            updatedAt: ISO8601DateFormatter().string(from: Date())
+        )
+        
+        supabaseDatabase.updateVMSession(updatedSession)
+            .sink(
+                receiveCompletion: { completion in
+                    if case .failure(let error) = completion {
+                        print("Failed to update VM session: \(error.localizedDescription)")
+                    }
+                },
+                receiveValue: { [weak self] updatedSession in
+                    DispatchQueue.main.async {
+                        if let index = self?.vmSessions.firstIndex(where: { $0.id == sessionId }) {
+                            self?.vmSessions[index] = updatedSession
+                        }
+                        if status == "running" {
+                            self?.currentVMSession = updatedSession
+                        } else if status == "ended" && self?.currentVMSession?.id == sessionId {
+                            self?.currentVMSession = nil
+                        }
+                    }
+                }
+            )
+            .store(in: &cancellables)
+    }
+    
+    /// Launch a new VM instance - now with Supabase integration
     func launchVM(androidVersion: String = "11.0", ram: String = "2048M", resolution: String = "1080x1920") -> AnyPublisher<VMStatus, APIError> {
         // Check if we already have an active VM
         if let activeVM = activeVM, activeVM.status == "running" {
@@ -88,6 +199,28 @@ class VirtualMachineService {
             
             self.activeVM = mockVM
             
+            // Create VM session in Supabase for demo
+            self.createVMSession(vmId: mockVM.vmId, connectionInfo: mockConnectionInfo)
+                .sink(
+                    receiveCompletion: { completion in
+                        if case .failure(let error) = completion {
+                            print("Failed to create demo VM session: \(error.localizedDescription)")
+                        }
+                    },
+                    receiveValue: { [weak self] session in
+                        DispatchQueue.main.async {
+                            self?.currentVMSession = session
+                            self?.vmSessions.insert(session, at: 0)
+                        }
+                        
+                        // Update session to running after delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            self?.updateVMSessionStatus(session.id, status: "running")
+                        }
+                    }
+                )
+                .store(in: &self.cancellables)
+            
             // Change connection state after delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 self.connectionStateSubject.send(.connected(vmId: mockVM.vmId))
@@ -116,6 +249,7 @@ class VirtualMachineService {
         }
         
         connectionStateSubject.send(.connecting)
+        isLoading = true
         
         return networkService.request(
             endpoint: "\(APIConfig.vmEndpoint)/launch",
@@ -123,6 +257,19 @@ class VirtualMachineService {
             body: body
         )
         .flatMap { (response: LaunchVMResponse) -> AnyPublisher<VMStatus, APIError> in
+            // Create VM session in Supabase
+            self.createVMSession(vmId: response.vmId, connectionInfo: nil)
+                .sink(
+                    receiveCompletion: { _ in },
+                    receiveValue: { session in
+                        DispatchQueue.main.async {
+                            self.currentVMSession = session
+                            self.vmSessions.insert(session, at: 0)
+                        }
+                    }
+                )
+                .store(in: &self.cancellables)
+            
             // If VM is starting, poll until it's ready
             if response.status == "starting" {
                 return self.pollVMStatus(vmId: response.vmId)
@@ -131,14 +278,84 @@ class VirtualMachineService {
                 return self.getVMStatus(vmId: response.vmId)
             }
         }
-        .handleEvents(receiveOutput: { vmStatus in
-            self.activeVM = vmStatus
-            
-            if vmStatus.status == "running" && vmStatus.connectionInfo != nil {
-                self.connectionStateSubject.send(.connected(vmId: vmStatus.vmId))
-                self.startMonitoringConnection(vmStatus: vmStatus)
+        .handleEvents(
+            receiveOutput: { vmStatus in
+                self.activeVM = vmStatus
+                self.isLoading = false
+                
+                // Update VM session status to running
+                if let sessionId = self.currentVMSession?.id {
+                    self.updateVMSessionStatus(sessionId, status: "running")
+                }
+                
+                if vmStatus.status == "running" {
+                    self.connectionStateSubject.send(.connected(vmId: vmStatus.vmId))
+                    self.startLatencySimulation()
+                }
+            },
+            receiveCompletion: { completion in
+                self.isLoading = false
+                if case .failure(let error) = completion {
+                    self.connectionStateSubject.send(.error(error.message))
+                }
             }
-        })
+        )
+        .eraseToAnyPublisher()
+    }
+    
+    /// Terminate VM - now with Supabase integration
+    func terminateVM() -> AnyPublisher<Bool, APIError> {
+        guard let activeVM = activeVM else {
+            return Just(true).setFailureType(to: APIError.self).eraseToAnyPublisher()
+        }
+        
+        #if DEBUG
+        // For demo/testing, simulate VM termination
+        if networkService.getAuthToken()?.starts(with: "demo_token_") ?? false {
+            self.activeVM = nil
+            self.connectionStateSubject.send(.disconnected)
+            self.stopLatencySimulation()
+            
+            // End VM session in Supabase
+            if let sessionId = currentVMSession?.id {
+                updateVMSessionStatus(sessionId, status: "ended")
+            }
+            
+            return Just(true)
+                .delay(for: .seconds(1), scheduler: RunLoop.main)
+                .setFailureType(to: APIError.self)
+                .eraseToAnyPublisher()
+        }
+        #endif
+        
+        isLoading = true
+        
+        return networkService.request(
+            endpoint: "\(APIConfig.vmEndpoint)/vm/\(activeVM.vmId)/terminate",
+            method: "POST"
+        )
+        .map { (_: [String: String]) -> Bool in
+            return true
+        }
+        .handleEvents(
+            receiveOutput: { _ in
+                self.activeVM = nil
+                self.isLoading = false
+                self.connectionStateSubject.send(.disconnected)
+                self.stopLatencySimulation()
+                
+                // End VM session in Supabase
+                if let sessionId = self.currentVMSession?.id {
+                    self.updateVMSessionStatus(sessionId, status: "ended")
+                }
+            },
+            receiveCompletion: { completion in
+                self.isLoading = false
+                if case .failure(let error) = completion {
+                    print("Failed to terminate VM: \(error.message)")
+                }
+            }
+        )
         .eraseToAnyPublisher()
     }
     
@@ -255,5 +472,4 @@ class VirtualMachineService {
     func getCurrentVM() -> VMStatus? {
         return activeVM
     }
-}
 }

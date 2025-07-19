@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - SUPABASE_URL=https://qnzskbfqqzxuikjyzqdp.supabase.co
+      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFuenNrYmZxcXp4dWlranlucWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjE0MjgzMjYsImV4cCI6MjAzNzAwNDMyNn0.4-ccUMpnJdcXf_klVwqb1eLfwMhJ3QxQ3VZlxhvDSzs
+    networks:
+      - shaydz-network
+
+  app-catalog:
+    build: ./app-catalog
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=development
+      - SUPABASE_URL=https://qnzskbfqqzxuikjyzqdp.supabase.co
+      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFuenNrYmZxcXp4dWlranlucWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjE0MjgzMjYsImV4cCI6MjAzNzAwNDMyNn0.4-ccUMpnJdcXf_klVwqb1eLfwMhJ3QxQ3VZlxhvDSzs
+    networks:
+      - shaydz-network
+
+  vm-orchestrator:
+    build: ./vm-orchestrator
+    ports:
+      - "3003:5000"
+    environment:
+      - FLASK_ENV=development
+      - SUPABASE_URL=https://qnzskbfqqzxuikjyzqdp.supabase.co
+      - SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFuenNrYmZxcXp4dWlranlucWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjE0MjgzMjYsImV4cCI6MjAzNzAwNDMyNn0.4-ccUMpnJdcXf_klVwqb1eLfwMhJ3QxQ3VZlxhvDSzs
+    privileged: true
+    volumes:
+      - /dev/kvm:/dev/kvm
+      - vm-data:/var/lib/vms
+    networks:
+      - shaydz-network
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - AUTH_SERVICE_URL=http://auth-service:3000
+      - APP_CATALOG_URL=http://app-catalog:3000
+      - VM_ORCHESTRATOR_URL=http://vm-orchestrator:5000
+    depends_on:
+      - auth-service
+      - app-catalog
+      - vm-orchestrator
+    networks:
+      - shaydz-network
+
+networks:
+  shaydz-network:
+    driver: bridge
+
+volumes:
+  vm-data:
+    driver: local
