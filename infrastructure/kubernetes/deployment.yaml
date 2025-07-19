@@ -1,0 +1,378 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shaydz-avmo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: shaydz-avmo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+      - name: api-gateway
+        image: ${DOCKER_REGISTRY}/shaydz-api-gateway:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8080"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: shaydz-secrets
+              key: jwt-secret
+        - name: AUTH_SERVICE_URL
+          value: "http://auth-service:8081"
+        - name: VM_ORCHESTRATOR_URL
+          value: "http://vm-orchestrator:8082"
+        - name: APP_CATALOG_URL
+          value: "http://app-catalog:8083"
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: shaydz-avmo
+spec:
+  selector:
+    app: api-gateway
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: shaydz-avmo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+      - name: auth-service
+        image: ${DOCKER_REGISTRY}/shaydz-auth-service:latest
+        ports:
+        - containerPort: 8081
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8081"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: shaydz-secrets
+              key: jwt-secret
+        - name: DB_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: shaydz-secrets
+              key: mongo-auth-uri
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: shaydz-avmo
+spec:
+  selector:
+    app: auth-service
+  ports:
+  - port: 8081
+    targetPort: 8081
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vm-orchestrator
+  namespace: shaydz-avmo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vm-orchestrator
+  template:
+    metadata:
+      labels:
+        app: vm-orchestrator
+    spec:
+      containers:
+      - name: vm-orchestrator
+        image: ${DOCKER_REGISTRY}/shaydz-vm-orchestrator:latest
+        ports:
+        - containerPort: 8082
+        env:
+        - name: FLASK_ENV
+          value: "production"
+        - name: PORT
+          value: "8082"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: shaydz-secrets
+              key: jwt-secret
+        - name: DB_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: shaydz-secrets
+              key: mongo-vms-uri
+        volumeMounts:
+        - name: vm-data
+          mountPath: /data/vms
+        securityContext:
+          privileged: true # Required for VM operations
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8082
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8082
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: vm-data
+        persistentVolumeClaim:
+          claimName: vm-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vm-orchestrator
+  namespace: shaydz-avmo
+spec:
+  selector:
+    app: vm-orchestrator
+  ports:
+  - port: 8082
+    targetPort: 8082
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-catalog
+  namespace: shaydz-avmo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: app-catalog
+  template:
+    metadata:
+      labels:
+        app: app-catalog
+    spec:
+      containers:
+      - name: app-catalog
+        image: ${DOCKER_REGISTRY}/shaydz-app-catalog:latest
+        ports:
+        - containerPort: 8083
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8083"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: shaydz-secrets
+              key: jwt-secret
+        - name: DB_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: shaydz-secrets
+              key: mongo-apps-uri
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8083
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8083
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-catalog
+  namespace: shaydz-avmo
+spec:
+  selector:
+    app: app-catalog
+  ports:
+  - port: 8083
+    targetPort: 8083
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vm-data-pvc
+  namespace: shaydz-avmo
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: standard
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shaydz-avmo-ingress
+  namespace: shaydz-avmo
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - api.shaydz-avmo.io
+    secretName: shaydz-avmo-tls
+  rules:
+  - host: api.shaydz-avmo.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: api-gateway
+            port:
+              number: 8080
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway-hpa
+  namespace: shaydz-avmo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: auth-service-hpa
+  namespace: shaydz-avmo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: auth-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

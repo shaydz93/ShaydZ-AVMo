@@ -1,0 +1,64 @@
+{
+  "name": "shaydz-avmo",
+  "version": "1.0.0", 
+  "description": "Virtual Mobile Infrastructure Platform - Revolutionary virtual iOS app environment with containerized virtual machines and full backend integration",
+  "main": "index.js",
+  "scripts": {
+    "start": "echo 'ShaydZ AVMo Platform - Use specific service commands' && echo 'Backend: cd demo-production && docker-compose up -d' && echo 'Demos: cd demos && npm start' && echo 'iOS: Open ShaydZ-AVMo.xcodeproj'",
+    "test": "npm run test:backend && npm run test:integration",
+    "test:backend": "cd backend/api-gateway && npm test && cd ../auth-service && npm test && cd ../app-catalog && npm test",
+    "test:integration": "jest integration-tests.js",
+    "test:performance": "node performance.test.js",
+    "test:ios": "cd ios-integration && node scripts/test-integration.js",
+    "backend:start": "cd demo-production && docker-compose up -d",
+    "backend:stop": "cd demo-production && docker-compose down",
+    "backend:logs": "cd demo-production && docker-compose logs -f",
+    "backend:health": "cd ios-integration && node scripts/check-backend.js",
+    "demos:start": "cd demos && npm install && npm start",
+    "demos:status": "cd demos && npm run status",
+    "ios:check": "cd ios-integration && node scripts/check-backend.js",
+    "ios:sync": "cd ios-integration && node scripts/sync-services.js", 
+    "ios:test": "cd ios-integration && node scripts/test-integration.js",
+    "dev": "npm run backend:start && npm run demos:start",
+    "clean": "docker system prune -f && rm -rf */node_modules && rm -rf node_modules",
+    "setup": "npm install && cd backend/api-gateway && npm install && cd ../auth-service && npm install && cd ../app-catalog && npm install && cd ../../demos && npm install && cd ../ios-integration && npm install"
+  },
+  "keywords": [
+    "virtual-mobile",
+    "ios", 
+    "virtual-machine",
+    "microservices",
+    "swift",
+    "docker",
+    "mongodb",
+    "express",
+    "swiftui",
+    "mobile-infrastructure"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shaydz93/ShaydZ-AVMo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shaydz93/ShaydZ-AVMo/issues" 
+  },
+  "homepage": "https://github.com/shaydz93/ShaydZ-AVMo#readme",
+  "author": "ShaydZ AVMo Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "express": "^4.18.2",
+    "chalk": "^4.1.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  },
+  "jest": {
+    "testTimeout": 30000
+  }
+}

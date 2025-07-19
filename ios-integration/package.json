@@ -1,0 +1,41 @@
+{
+  "name": "shaydz-avmo-ios-integration",
+  "version": "1.0.0",
+  "description": "iOS Development and Integration Tools for ShaydZ AVMo",
+  "scripts": {
+    "test:integration": "node scripts/test-ios-integration.js",
+    "generate:swift": "node scripts/generate-swift-code.js",
+    "setup:xcode": "node scripts/setup-xcode-project.js",
+    "setup:complete": "npm run generate:swift && npm run setup:xcode && npm run test:integration",
+    "run:app": "node scripts/run-app.js",
+    "demo:server": "node scripts/demo-server.js",
+    "start:demo": "npm run demo:server",
+    "build:ios": "node scripts/build-ios.js",
+    "api:test": "node scripts/test-api-integration.js",
+    "dev:backend": "cd ../demo-production && docker-compose up -d",
+    "logs:backend": "cd ../demo-production && docker-compose logs -f",
+    "ios-test": "node scripts/test-ios-integration.js",
+    "ios-build": "node scripts/build-ios.js",
+    "setup-ios": "node scripts/setup-ios-env.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "chalk": "^4.1.2",
+    "express": "^4.18.0",
+    "http-proxy-middleware": "^2.0.0",
+    "inquirer": "^9.2.0",
+    "shelljs": "^0.8.5",
+    "ws": "^8.14.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@types/node": "^20.0.0"
+  },
+  "keywords": [
+    "ios",
+    "mobile",
+    "development",
+    "integration",
+    "testing"
+  ]
+}

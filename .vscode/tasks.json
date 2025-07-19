@@ -1,0 +1,28 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build ShaydZ AVMo",
+            "type": "shell",
+            "command": "xcodebuild",
+            "args": [
+                "-project",
+                "ShaydZ-AVMo.xcodeproj",
+                "-scheme",
+                "ShaydZ-AVMo",
+                "-configuration",
+                "Debug",
+                "-destination",
+                "platform=iOS Simulator,name=iPhone 13",
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ]
+        }
+    ]
+}
