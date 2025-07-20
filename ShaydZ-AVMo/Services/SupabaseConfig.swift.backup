@@ -3,10 +3,14 @@ import Foundation
 /// Supabase configuration settings
 struct SupabaseConfig {
     /// Your Supabase project URL
-    static let supabaseURL = "https://qnzskbfqqzxuikjyzqdp.supabase.co"
+    /// For demo purposes, we'll use a local mock endpoint
+    /// Replace with your actual Supabase project URL
+    static let supabaseURL = ProcessInfo.processInfo.environment["SUPABASE_URL"] ?? "http://localhost:8080"
     
-    /// Your Supabase anon/public key  
-    static let supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFuenNrYmZxcXp4dWlranl6cWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI5NjAwNTksImV4cCI6MjA2ODUzNjA1OX0.qGZ3Y6nR9CfQWGt1O_qrzxJcYXTgntD8pCmM2gayjBQ"
+    /// Your Supabase anon/public key
+    /// For demo purposes, we'll use a mock key
+    /// Replace with your actual Supabase anon key
+    static let supabaseAnonKey = ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"] ?? "demo_key_123"
     
     /// API endpoints
     static var authURL: String {

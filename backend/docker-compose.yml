@@ -6,9 +6,9 @@ services:
     ports:
       - "3001:3000"
     environment:
-      - NODE_ENV=development
-      - SUPABASE_URL=https://qnzskbfqqzxuikjyzqdp.supabase.co
-      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFuenNrYmZxcXp4dWlranlucWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjE0MjgzMjYsImV4cCI6MjAzNzAwNDMyNn0.4-ccUMpnJdcXf_klVwqb1eLfwMhJ3QxQ3VZlxhvDSzs
+      - NODE_ENV=debug
+      - PORT=3000
+    command: ["node", "debug-server.js"]
     networks:
       - shaydz-network
 
@@ -17,9 +17,9 @@ services:
     ports:
       - "3002:3000"
     environment:
-      - NODE_ENV=development
-      - SUPABASE_URL=https://qnzskbfqqzxuikjyzqdp.supabase.co
-      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFuenNrYmZxcXp4dWlranlucWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjE0MjgzMjYsImV4cCI6MjAzNzAwNDMyNn0.4-ccUMpnJdcXf_klVwqb1eLfwMhJ3QxQ3VZlxhvDSzs
+      - NODE_ENV=debug
+      - PORT=3000
+    command: ["node", "debug-server.js"]
     networks:
       - shaydz-network
 
@@ -28,13 +28,9 @@ services:
     ports:
       - "3003:5000"
     environment:
-      - FLASK_ENV=development
-      - SUPABASE_URL=https://qnzskbfqqzxuikjyzqdp.supabase.co
-      - SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFuenNrYmZxcXp4dWlranlucWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjE0MjgzMjYsImV4cCI6MjAzNzAwNDMyNn0.4-ccUMpnJdcXf_klVwqb1eLfwMhJ3QxQ3VZlxhvDSzs
-    privileged: true
-    volumes:
-      - /dev/kvm:/dev/kvm
-      - vm-data:/var/lib/vms
+      - FLASK_ENV=debug
+      - FLASK_DEBUG=1
+    command: ["python3", "debug-orchestrator.py"]
     networks:
       - shaydz-network
 
@@ -43,7 +39,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=debug
       - AUTH_SERVICE_URL=http://auth-service:3000
       - APP_CATALOG_URL=http://app-catalog:3000
       - VM_ORCHESTRATOR_URL=http://vm-orchestrator:5000
@@ -57,7 +53,3 @@ services:
 networks:
   shaydz-network:
     driver: bridge
-
-volumes:
-  vm-data:
-    driver: local

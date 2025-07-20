@@ -73,6 +73,30 @@ class SupabaseDatabaseService {
         )
     }
     
+    /// Fetch apps as AppModel for compatibility
+    func fetchApps() -> AnyPublisher<[AppModel], SupabaseError> {
+        return fetchAppCatalog()
+            .map { supabaseApps in
+                supabaseApps.map { supabaseApp in
+                    AppModel(
+                        id: supabaseApp.id,
+                        name: supabaseApp.name,
+                        description: supabaseApp.description ?? "No description available",
+                        category: supabaseApp.category,
+                        iconName: AppIconMapper.shared.iconName(for: supabaseApp.name),
+                        version: supabaseApp.version,
+                        isInstalled: false, // Will be updated based on user installations
+                        isEnterprise: true, // Assume enterprise apps in Supabase
+                        packageName: supabaseApp.name.lowercased().replacingOccurrences(of: " ", with: "."),
+                        size: 50000000, // Default size
+                        permissions: supabaseApp.requiredPermissions ?? [],
+                        lastUpdated: supabaseApp.updatedAt
+                    )
+                }
+            }
+            .eraseToAnyPublisher()
+    }
+    
     /// Fetch app categories
     func fetchAppCategories() -> AnyPublisher<[String], SupabaseError> {
         return networkService.select(

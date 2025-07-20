@@ -148,6 +148,8 @@ class UTMEnhancedVirtualMachineService: ObservableObject {
     static let shared = UTMEnhancedVirtualMachineService()
     private let supabaseDatabase = SupabaseDatabaseService.shared
     private let networkService = NetworkService.shared
+    private let performanceMonitor = VMPerformanceMonitor()
+    private let configurationFactory = VMConfigurationFactory.self
     private var cancellables = Set<AnyCancellable>()
     
     /// Published properties for reactive UI updates
@@ -201,28 +203,28 @@ class UTMEnhancedVirtualMachineService: ObservableObject {
     /// Load predefined Android VM configurations
     private func loadPredefinedConfigurations() {
         let configs = [
-            createAndroidConfig(
+            configurationFactory.createAndroidConfig(
                 name: "Android 13 - Pixel 6 Pro",
                 androidVersion: "13.0",
                 memorySize: 4096,
                 cpuCount: 6,
                 deviceProfile: "pixel_6_pro"
             ),
-            createAndroidConfig(
+            configurationFactory.createAndroidConfig(
                 name: "Android 12 - Standard",
                 androidVersion: "12.0",
                 memorySize: 3072,
                 cpuCount: 4,
                 deviceProfile: "standard"
             ),
-            createAndroidConfig(
+            configurationFactory.createAndroidConfig(
                 name: "Android 11 - Lightweight",
                 androidVersion: "11.0",
                 memorySize: 2048,
                 cpuCount: 2,
                 deviceProfile: "lightweight"
             ),
-            createEnterpriseConfig(
+            configurationFactory.createEnterpriseConfig(
                 name: "Enterprise Security VM",
                 androidVersion: "13.0",
                 memorySize: 6144,

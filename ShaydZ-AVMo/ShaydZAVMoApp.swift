@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 @main
 struct ShaydZAVMoApp: App {
@@ -11,6 +12,10 @@ struct ShaydZAVMoApp: App {
     @StateObject private var enhancedVMService = UTMEnhancedVirtualMachineService.shared
     @StateObject private var configManager = QEMUVMConfigurationManager.shared
     
+    // Initialize Supabase integration services
+    @StateObject private var integrationManager = SupabaseIntegrationManager.shared
+    @StateObject private var demoService = SupabaseDemoService.shared
+    
     var body: some Scene {
         WindowGroup {
             IntegratedAppView()
@@ -19,10 +24,13 @@ struct ShaydZAVMoApp: App {
                 .environmentObject(vmService)
                 .environmentObject(enhancedVMService)
                 .environmentObject(configManager)
+                .environmentObject(integrationManager)
+                .environmentObject(demoService)
                 .onAppear {
                     // Initialize services on app launch
                     setupSupabaseServices()
                     setupEnhancedVirtualization()
+                    setupSupabaseIntegration()
                 }
         }
     }
@@ -44,6 +52,26 @@ struct ShaydZAVMoApp: App {
             print("VM configuration updated")
         }
         .store(in: &cancellables)
+    }
+    
+    private func setupSupabaseIntegration() {
+        // Initialize Supabase integration
+        integrationManager.initializeConnection()
+        
+        // Setup real-time features when connected
+        integrationManager.$isConnected
+            .filter { $0 }
+            .sink { _ in
+                integrationManager.startRealtimeSubscriptions()
+            }
+            .store(in: &cancellables)
+        
+        // Monitor integration health
+        integrationManager.$connectionStatus
+            .sink { status in
+                print("🔄 Supabase connection status: \(status.displayText)")
+            }
+            .store(in: &cancellables)
     }
     
     private var cancellables = Set<AnyCancellable>()
