@@ -50,20 +50,3 @@ struct ShaydZAVMoApp: App {
         }
     }
 }
-                integrationManager.startRealtimeSubscriptions()
-            }
-            .store(in: &cancellables)
-        
-        // Monitor integration health
-        integrationManager.$connectionStatus
-            .sink { status in
-                print("🔄 Supabase connection status: \(status.displayText)")
-            }
-            .store(in: &cancellables)
-    }
-    
-    private var cancellables = Set<AnyCancellable>()
-}
-
-// Import Combine for reactive programming
-import Combine

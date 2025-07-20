@@ -39,7 +39,7 @@ enum ConnectionState: Equatable {
 
 class VirtualMachineService: ObservableObject {
     static let shared = VirtualMachineService()
-    private let networkService = NetworkService.shared
+    private let networkService = AppCatalogNetworkService.shared
     private let supabaseDatabase = SupabaseDatabaseService.shared
     private var activeVM: VMStatus?
     private var webSocketTask: URLSessionWebSocketTask?

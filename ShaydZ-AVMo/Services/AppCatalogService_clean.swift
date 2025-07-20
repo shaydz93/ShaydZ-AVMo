@@ -1,13 +1,22 @@
 import Foundation
 import Combine
 
+// Core API Error for the app
+enum AppCatalogAPIError: Error {
+    case networkError
+    case invalidResponse
+    case unauthorized
+    case serverError
+    case unknown(String)
+}
+
 // Mock NetworkService for compilation
 class AppCatalogNetworkService {
     static let shared = AppCatalogNetworkService()
     
-    func get<T: Codable>(_ type: T.Type, from url: URL) -> AnyPublisher<T, APIError> {
+    func get<T: Codable>(_ type: T.Type, from url: URL) -> AnyPublisher<T, AppCatalogAPIError> {
         return Just([] as! T)
-            .setFailureType(to: APIError.self)
+            .setFailureType(to: AppCatalogAPIError.self)
             .eraseToAnyPublisher()
     }
 }
@@ -90,7 +99,7 @@ class AppCatalogService: ObservableObject {
     }
 
     /// Load available apps from backend
-    func fetchAvailableApps() -> AnyPublisher<[AppModel], APIError> {
+    func fetchAvailableApps() -> AnyPublisher<[AppModel], AppCatalogAPIError> {
         // Mock implementation for compilation
         let mockApps = [
             AppModel(id: "1", name: "Demo App", description: "Demo app", iconName: "app.fill"),
@@ -99,7 +108,7 @@ class AppCatalogService: ObservableObject {
         
         return Just(mockApps)
             .delay(for: .seconds(1), scheduler: RunLoop.main)
-            .setFailureType(to: APIError.self)
+            .setFailureType(to: AppCatalogAPIError.self)
             .handleEvents(receiveOutput: { [weak self] apps in
                 DispatchQueue.main.async {
                     self?.availableApps = apps
@@ -109,23 +118,23 @@ class AppCatalogService: ObservableObject {
     }
     
     /// Get app categories
-    func getCategories() -> AnyPublisher<[String], APIError> {
+    func getCategories() -> AnyPublisher<[String], AppCatalogAPIError> {
         let mockCategories = ["Productivity", "Games", "Utilities", "Entertainment"]
         return Just(mockCategories)
-            .setFailureType(to: APIError.self)
+            .setFailureType(to: AppCatalogAPIError.self)
             .eraseToAnyPublisher()
     }
     
     /// Install an app
-    func installApp(_ app: AppModel) -> AnyPublisher<Bool, APIError> {
+    func installApp(_ app: AppModel) -> AnyPublisher<Bool, AppCatalogAPIError> {
         return Just(true)
             .delay(for: .seconds(2), scheduler: RunLoop.main)
-            .setFailureType(to: APIError.self)
+            .setFailureType(to: AppCatalogAPIError.self)
             .eraseToAnyPublisher()
     }
     
     /// Search apps
-    func searchApps(query: String) -> AnyPublisher<[AppModel], APIError> {
+    func searchApps(query: String) -> AnyPublisher<[AppModel], AppCatalogAPIError> {
         return fetchAvailableApps()
             .map { apps in
                 apps.filter { $0.name.localizedCaseInsensitiveContains(query) }

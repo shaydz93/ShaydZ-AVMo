@@ -21,7 +21,7 @@ struct UserProfile: Codable {
 
 class AuthenticationService: ObservableObject {
     static let shared = AuthenticationService()
-    private let networkService = NetworkService.shared
+    private let networkService = AppCatalogNetworkService.shared
     private let supabaseAuth = SupabaseAuthService.shared
     private var cancellables = Set<AnyCancellable>()
     

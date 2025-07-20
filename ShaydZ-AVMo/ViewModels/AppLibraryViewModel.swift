@@ -1,15 +1,6 @@
 import Foundation
 import Combine
 
-// Define APIError enum for compilation
-enum APIError: Error {
-    case networkError
-    case invalidResponse
-    case unauthorized
-    case serverError
-    case unknown
-}
-
 class AppLibraryViewModel: ObservableObject {
     @Published var apps: [AppModel] = []
     @Published var categories: [String] = []
