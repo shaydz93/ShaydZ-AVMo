@@ -52,12 +52,13 @@ for file in "${key_files[@]}"; do
 done
 
 echo ""
-echo "🔧 Recent compilation fixes applied:"
-echo "   • AppCatalogService: Added missing service definitions"
-echo "   • AppLibraryViewModel: Fixed type annotations"
-echo "   • ContentView: Updated to use HomeView"
-echo "   • ShaydZAVMoApp: Simplified initialization"
-echo "   • Info.plist: Updated TLS version to 1.2"
+echo "🔧 Latest compilation fixes applied:"
+echo "   • APIError: Embedded definition in each service file"
+echo "   • AppCatalogService: Fixed UUID conversion issues"
+echo "   • AppLibraryViewModel: Added APIError definition"  
+echo "   • AuthenticationService: Added APIError definition"
+echo "   • VirtualMachineService: Fixed missing types and services"
+echo "   • All services: Unified error handling approach"
 echo ""
 
 # Try to build if on macOS

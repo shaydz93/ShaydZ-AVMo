@@ -1,6 +1,28 @@
 import Foundation
 import Combine
 
+// Import shared error definitions
+// Define APIError here for immediate compilation
+enum APIError: Error, LocalizedError {
+    case networkError
+    case invalidResponse
+    case unauthorized
+    case serverError
+    case badRequest(String)
+    case unknown(String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .networkError: return "Network error"
+        case .invalidResponse: return "Invalid response"
+        case .unauthorized: return "Unauthorized"
+        case .serverError: return "Server error"
+        case .badRequest(let msg): return "Bad request: \(msg)"
+        case .unknown(let msg): return "Unknown error: \(msg)"
+        }
+    }
+}
+
 // Mock NetworkService for compilation
 class AppCatalogNetworkService {
     static let shared = AppCatalogNetworkService()
@@ -93,8 +115,8 @@ class AppCatalogService: ObservableObject {
     func fetchAvailableApps() -> AnyPublisher<[AppModel], APIError> {
         // Mock implementation for compilation
         let mockApps = [
-            AppModel(id: "1", name: "Demo App", description: "Demo app", iconName: "app.fill"),
-            AppModel(id: "2", name: "Test App", description: "Test app", iconName: "gear")
+            AppModel(id: UUID(), name: "Demo App", description: "Demo app", iconName: "app.fill"),
+            AppModel(id: UUID(), name: "Test App", description: "Test app", iconName: "gear")
         ]
         
         return Just(mockApps)

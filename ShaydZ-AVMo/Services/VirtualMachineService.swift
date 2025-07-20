@@ -2,6 +2,35 @@ import Foundation
 import Combine
 import WebKit
 
+// Define APIError here for immediate compilation
+enum APIError: Error, LocalizedError {
+    case networkError
+    case invalidResponse
+    case unauthorized
+    case serverError
+    case badRequest(String)
+    case unknown(String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .networkError: return "Network error"
+        case .invalidResponse: return "Invalid response"
+        case .unauthorized: return "Unauthorized"
+        case .serverError: return "Server error"
+        case .badRequest(let msg): return "Bad request: \(msg)"
+        case .unknown(let msg): return "Unknown error: \(msg)"
+        }
+    }
+}
+
+// Mock SupabaseVMSession for compilation
+struct SupabaseVMSession: Codable {
+    let id: String
+    let userId: String
+    let status: String
+    let createdAt: String
+}
+
 /// Virtual machine response models
 struct VMConfig: Codable {
     let androidVersion: String
@@ -40,7 +69,7 @@ enum ConnectionState: Equatable {
 class VirtualMachineService: ObservableObject {
     static let shared = VirtualMachineService()
     private let networkService = AppCatalogNetworkService.shared
-    private let supabaseDatabase = SupabaseDatabaseService.shared
+    private let supabaseDatabase = AppCatalogSupabaseService.shared
     private var activeVM: VMStatus?
     private var webSocketTask: URLSessionWebSocketTask?
     private var cancellables = Set<AnyCancellable>()

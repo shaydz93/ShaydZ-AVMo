@@ -1,6 +1,27 @@
 import Foundation
 import Combine
 
+// Define APIError here for immediate compilation
+enum APIError: Error, LocalizedError {
+    case networkError
+    case invalidResponse
+    case unauthorized
+    case serverError
+    case badRequest(String)
+    case unknown(String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .networkError: return "Network error"
+        case .invalidResponse: return "Invalid response"  
+        case .unauthorized: return "Unauthorized"
+        case .serverError: return "Server error"
+        case .badRequest(let msg): return "Bad request: \(msg)"
+        case .unknown(let msg): return "Unknown error: \(msg)"
+        }
+    }
+}
+
 class AppLibraryViewModel: ObservableObject {
     @Published var apps: [AppModel] = []
     @Published var categories: [String] = []
