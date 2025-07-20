@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShaydZ AVMo - Live Demo Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .status-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .status-card h3 {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4ade80;
+            box-shadow: 0 0 10px #4ade80;
+        }
+        .status-indicator.warning {
+            background: #fbbf24;
+            box-shadow: 0 0 10px #fbbf24;
+        }
+        .endpoint-list {
+            list-style: none;
+        }
+        .endpoint-list li {
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9rem;
+        }
+        .demo-section {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 30px;
+        }
+        .demo-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        .api-test {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9rem;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .info { color: #60a5fa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 ShaydZ AVMo</h1>
+            <p>Virtual Mobile Infrastructure Platform - Live Demo</p>
+        </div>
+
+        <div class="status-grid">
+            <div class="status-card">
+                <h3>
+                    <span class="status-indicator" id="gateway-status"></span>
+                    API Gateway
+                </h3>
+                <ul class="endpoint-list">
+                    <li>🌐 Port: 8080</li>
+                    <li>📡 Health: <span id="gateway-health">Checking...</span></li>
+                    <li>🔗 http://localhost:8080</li>
+                </ul>
+            </div>
+
+            <div class="status-card">
+                <h3>
+                    <span class="status-indicator" id="auth-status"></span>
+                    Authentication Service
+                </h3>
+                <ul class="endpoint-list">
+                    <li>🔐 Port: 8081</li>
+                    <li>📡 Health: <span id="auth-health">Checking...</span></li>
+                    <li>🔗 http://localhost:8081</li>
+                </ul>
+            </div>
+
+            <div class="status-card">
+                <h3>
+                    <span class="status-indicator" id="vm-status"></span>
+                    VM Orchestrator
+                </h3>
+                <ul class="endpoint-list">
+                    <li>🤖 Port: 8082</li>
+                    <li>📡 Health: <span id="vm-health">Checking...</span></li>
+                    <li>🔗 http://localhost:8082</li>
+                </ul>
+            </div>
+
+            <div class="status-card">
+                <h3>
+                    <span class="status-indicator" id="catalog-status"></span>
+                    App Catalog
+                </h3>
+                <ul class="endpoint-list">
+                    <li>📱 Port: 8083</li>
+                    <li>📡 Health: <span id="catalog-health">Checking...</span></li>
+                    <li>🔗 http://localhost:8083</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🎮 Interactive Demo</h2>
+            <p>Explore the ShaydZ AVMo platform capabilities:</p>
+            <div class="demo-buttons">
+                <button class="btn btn-primary" onclick="testHealthCheck()">🏥 Health Check</button>
+                <button class="btn btn-primary" onclick="testAuthentication()">🔐 Test Auth</button>
+                <button class="btn btn-primary" onclick="testAppCatalog()">📱 App Catalog</button>
+                <button class="btn btn-primary" onclick="testVMStatus()">🤖 VM Status</button>
+                <button class="btn btn-secondary" onclick="generateDemoToken()">🎫 Demo Token</button>
+            </div>
+            <div class="api-test" id="test-output">
+                Click a button above to test the API endpoints...
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>📱 iOS App Integration</h2>
+            <p>The iOS app includes:</p>
+            <ul style="margin-top: 15px; margin-left: 20px;">
+                <li>✅ Complete Supabase integration</li>
+                <li>✅ Real-time VM management</li>
+                <li>✅ Enterprise authentication</li>
+                <li>✅ App catalog browsing</li>
+                <li>✅ Debug dashboard</li>
+            </ul>
+            <div class="demo-buttons">
+                <a href="#" class="btn btn-primary" onclick="showXcodeInstructions()">🍎 Xcode Setup</a>
+                <a href="#" class="btn btn-secondary" onclick="showSupabaseInfo()">☁️ Supabase Info</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check service health on load
+        window.onload = function() {
+            checkServiceHealth();
+        };
+
+        async function checkServiceHealth() {
+            const services = [
+                { name: 'gateway', port: 8080, endpoint: '/health' },
+                { name: 'auth', port: 8081, endpoint: '/health' },
+                { name: 'vm', port: 8082, endpoint: '/health' },
+                { name: 'catalog', port: 8083, endpoint: '/health' }
+            ];
+
+            for (const service of services) {
+                try {
+                    const response = await fetch(`http://localhost:${service.port}${service.endpoint}`);
+                    const data = await response.json();
+                    
+                    document.getElementById(`${service.name}-health`).textContent = data.status || 'OK';
+                    document.getElementById(`${service.name}-status`).className = 'status-indicator';
+                } catch (error) {
+                    document.getElementById(`${service.name}-health`).textContent = 'Offline';
+                    document.getElementById(`${service.name}-status`).className = 'status-indicator warning';
+                }
+            }
+        }
+
+        async function testHealthCheck() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = '<div class="info">🔍 Testing health endpoints...</div>';
+            
+            try {
+                const gateway = await fetch('http://localhost:8080/health');
+                const gatewayData = await gateway.json();
+                
+                const auth = await fetch('http://localhost:8081/health');
+                const authData = await auth.json();
+                
+                output.innerHTML = `
+                    <div class="success">✅ Health Check Results:</div>
+                    <div>🌐 Gateway: ${JSON.stringify(gatewayData)}</div>
+                    <div>🔐 Auth: ${JSON.stringify(authData)}</div>
+                `;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testAuthentication() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = '<div class="info">🔐 Testing authentication...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:8081/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'demo', password: 'demo123' })
+                });
+                
+                const data = await response.json();
+                output.innerHTML = `
+                    <div class="info">🔐 Auth Response:</div>
+                    <div>${JSON.stringify(data, null, 2)}</div>
+                `;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Auth Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testAppCatalog() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = '<div class="info">📱 Testing app catalog...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:8083/api/apps');
+                const data = await response.json();
+                
+                output.innerHTML = `
+                    <div class="success">📱 App Catalog:</div>
+                    <div>${JSON.stringify(data, null, 2)}</div>
+                `;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Catalog Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testVMStatus() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = '<div class="info">🤖 Testing VM orchestrator...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:8082/api/vms');
+                const data = await response.json();
+                
+                output.innerHTML = `
+                    <div class="success">🤖 VM Status:</div>
+                    <div>${JSON.stringify(data, null, 2)}</div>
+                `;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ VM Error: ${error.message}</div>`;
+            }
+        }
+
+        function generateDemoToken() {
+            const output = document.getElementById('test-output');
+            const demoToken = btoa(JSON.stringify({
+                user: 'demo',
+                exp: Date.now() + 3600000,
+                scope: 'demo'
+            }));
+            
+            output.innerHTML = `
+                <div class="success">🎫 Demo Token Generated:</div>
+                <div>Token: ${demoToken}</div>
+                <div class="info">💡 Use this token in Authorization header: Bearer ${demoToken}</div>
+            `;
+        }
+
+        function showXcodeInstructions() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = `
+                <div class="info">🍎 Xcode Setup Instructions:</div>
+                <div>1. Open ShaydZ-AVMo.xcodeproj in Xcode</div>
+                <div>2. Select iPhone simulator or device</div>
+                <div>3. Build and run (⌘+R)</div>
+                <div>4. Use SupabaseIntegrationDashboard for testing</div>
+                <div class="success">✅ All 41 Swift files are ready!</div>
+            `;
+        }
+
+        function showSupabaseInfo() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = `
+                <div class="info">☁️ Supabase Integration:</div>
+                <div>🔗 URL: https://qnzskbfqqzxuikjyzqdp.supabase.co</div>
+                <div>🔐 Real-time authentication & database</div>
+                <div>⚡ Live data synchronization</div>
+                <div>📊 Comprehensive dashboard in iOS app</div>
+                <div class="success">✅ Production-ready integration!</div>
+            `;
+        }
+    </script>
+</body>
+</html>
