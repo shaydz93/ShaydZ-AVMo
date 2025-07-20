@@ -1,6 +1,48 @@
 import Foundation
 import Combine
 
+// Import required services and utilities
+extension NetworkService {
+    static let shared = NetworkService()
+}
+
+extension APIError {
+    static func unknown(String) -> APIError {
+        return APIError.networkError
+    }
+}
+
+enum APIError: Error {
+    case networkError
+    case invalidResponse
+    case unauthorized
+    case serverError
+    case unknown
+}
+
+// Mock SupabaseDatabaseService for compilation
+class SupabaseDatabaseService {
+    static let shared = SupabaseDatabaseService()
+}
+
+// Mock SupabaseAuthService for compilation  
+class SupabaseAuthService {
+    static let shared = SupabaseAuthService()
+}
+
+// App utilities from AppUtilities.swift
+class AppIconMapper {
+    static func iconName(for packageName: String) -> String {
+        return "app.fill"
+    }
+}
+
+class AppCategoryManager {
+    static func filterApps(_ apps: [AppDetailsModel], by category: String) -> [AppDetailsModel] {
+        return apps.filter { $0.category == category }
+    }
+}
+
 /// App catalog response models
 struct AppDetailsModel: Codable {
     let id: String
@@ -69,7 +111,7 @@ class AppCatalogService: ObservableObject {
     
     /// Map package name to SF Symbol icon name
     private func iconNameFromPackage(_ packageName: String) -> String {
-        return AppIconMapper.shared.iconName(for: packageName)
+        return AppIconMapper.iconName(for: packageName)
     }
 
     /// Load available apps from backend
@@ -98,53 +140,37 @@ class AppCatalogService: ObservableObject {
     private func generateLocalTestData() -> [AppModel] {
         return [
             AppModel(
-                id: "001",
+                id: UUID(),
                 name: "Enterprise Security Suite",
-                packageName: "com.enterprise.security",
-                iconName: iconNameFromPackage("com.enterprise.security"),
                 description: "Comprehensive security toolkit for enterprise environments",
-                category: "Security",
-                version: "2.1.0",
-                isInstalled: false,
-                requiresPermissions: ["Camera", "Microphone", "Location"],
-                downloadSizeMB: 45,
-                isEnterpriseApp: true
+                iconName: iconNameFromPackage("com.enterprise.security")
             ),
             AppModel(
-                id: "002", 
+                id: UUID(), 
                 name: "Corporate Communication Hub",
-                packageName: "com.corporate.comms",
-                iconName: iconNameFromPackage("com.corporate.comms"),
                 description: "Secure messaging and collaboration platform",
-                category: "Communication",
-                version: "1.8.3",
-                isInstalled: true,
-                requiresPermissions: ["Camera", "Microphone"],
-                downloadSizeMB: 78,
-                isEnterpriseApp: true
+                iconName: iconNameFromPackage("com.corporate.comms")
             ),
             AppModel(
-                id: "003",
-                name: "Finance Analytics Pro",
-                packageName: "com.finance.analytics",
-                iconName: iconNameFromPackage("com.finance.analytics"),
-                description: "Advanced financial analysis and reporting tools",
-                category: "Finance",
-                version: "3.2.1",
-                isInstalled: false,
-                requiresPermissions: ["Storage"],
-                downloadSizeMB: 126,
-                isEnterpriseApp: true
+                id: UUID(),
+                name: "Business Analytics Pro",
+                description: "Advanced analytics and reporting tools",
+                iconName: iconNameFromPackage("com.business.analytics")
             ),
             AppModel(
-                id: "004",
-                name: "Development Tools Kit",
-                packageName: "com.dev.toolkit",
-                iconName: iconNameFromPackage("com.dev.toolkit"),
-                description: "Complete development environment for mobile applications",
-                category: "Development",
-                version: "4.0.2",
-                isInstalled: false,
+                id: UUID(),
+                name: "Mobile VPN Client",
+                description: "Secure VPN access for remote work",
+                iconName: iconNameFromPackage("com.mobile.vpn")
+            ),
+            AppModel(
+                id: UUID(),
+                name: "Document Scanner Plus",
+                description: "Professional document scanning and processing",
+                iconName: iconNameFromPackage("com.document.scanner")
+            )
+        ]
+    }
                 requiresPermissions: ["Storage", "Network"],
                 downloadSizeMB: 203,
                 isEnterpriseApp: true

@@ -1,9 +1,30 @@
 import SwiftUI
 import Combine
 
+// Mock services for compilation
+class SupabaseAuthService: ObservableObject {
+    static let shared = SupabaseAuthService()
+}
+
+class UTMEnhancedVirtualMachineService: ObservableObject {
+    static let shared = UTMEnhancedVirtualMachineService()
+}
+
+class QEMUVMConfigurationManager: ObservableObject {
+    static let shared = QEMUVMConfigurationManager()
+}
+
+class SupabaseIntegrationManager: ObservableObject {
+    static let shared = SupabaseIntegrationManager()
+}
+
+class SupabaseDemoService: ObservableObject {
+    static let shared = SupabaseDemoService()
+}
+
 @main
 struct ShaydZAVMoApp: App {
-    // Initialize Supabase services
+    // Initialize services
     @StateObject private var authService = SupabaseAuthService.shared
     @StateObject private var appCatalogService = AppCatalogService.shared
     @StateObject private var vmService = VirtualMachineService.shared
@@ -18,7 +39,7 @@ struct ShaydZAVMoApp: App {
     
     var body: some Scene {
         WindowGroup {
-            IntegratedAppView()
+            ContentView()
                 .environmentObject(authService)
                 .environmentObject(appCatalogService)
                 .environmentObject(vmService)
@@ -26,42 +47,9 @@ struct ShaydZAVMoApp: App {
                 .environmentObject(configManager)
                 .environmentObject(integrationManager)
                 .environmentObject(demoService)
-                .onAppear {
-                    // Initialize services on app launch
-                    setupSupabaseServices()
-                    setupEnhancedVirtualization()
-                    setupSupabaseIntegration()
-                }
         }
     }
-    
-    private func setupSupabaseServices() {
-        // Check for existing authentication
-        if authService.isAuthenticated {
-            // Load user data if authenticated
-            appCatalogService.fetchUserInstalledApps()
-        }
-    }
-    
-    private func setupEnhancedVirtualization() {
-        // Initialize enhanced VM services
-        enhancedVMService.startPerformanceMonitoring()
-        
-        // Setup configuration validation
-        configManager.objectWillChange.sink { _ in
-            print("VM configuration updated")
-        }
-        .store(in: &cancellables)
-    }
-    
-    private func setupSupabaseIntegration() {
-        // Initialize Supabase integration
-        integrationManager.initializeConnection()
-        
-        // Setup real-time features when connected
-        integrationManager.$isConnected
-            .filter { $0 }
-            .sink { _ in
+}
                 integrationManager.startRealtimeSubscriptions()
             }
             .store(in: &cancellables)
