@@ -14,36 +14,6 @@ struct APIConfig {
     static let appsEndpoint = "\(baseURL)/apps"
 }
 
-/// Generic API errors
-enum APIError: Error {
-    case invalidURL
-    case networkError
-    case decodingError
-    case serverError(Int)
-    case unauthorized
-    case unknown
-    case badRequest(String)
-    
-    var message: String {
-        switch self {
-        case .invalidURL:
-            return "Invalid URL"
-        case .networkError:
-            return "Network connection failed"
-        case .decodingError:
-            return "Failed to decode response"
-        case .serverError(let code):
-            return "Server error: \(code)"
-        case .unauthorized:
-            return "Authentication required"
-        case .unknown:
-            return "An unknown error occurred"
-        case .badRequest(let message):
-            return message
-        }
-    }
-}
-
 /// Base NetworkService for API requests
 class NetworkService {
     static let shared = NetworkService()

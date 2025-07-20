@@ -1,28 +1,6 @@
 import Foundation
 import Combine
 
-// Import shared error definitions
-// Define APIError here for immediate compilation
-enum APIError: Error, LocalizedError {
-    case networkError
-    case invalidResponse
-    case unauthorized
-    case serverError
-    case badRequest(String)
-    case unknown(String)
-    
-    var errorDescription: String? {
-        switch self {
-        case .networkError: return "Network error"
-        case .invalidResponse: return "Invalid response"
-        case .unauthorized: return "Unauthorized"
-        case .serverError: return "Server error"
-        case .badRequest(let msg): return "Bad request: \(msg)"
-        case .unknown(let msg): return "Unknown error: \(msg)"
-        }
-    }
-}
-
 // Mock NetworkService for compilation
 class AppCatalogNetworkService {
     static let shared = AppCatalogNetworkService()
@@ -86,6 +64,45 @@ struct AppUploadResponse: Codable {
     let message: String
     let uploadedAt: String
     let lastUpdated: String
+}
+
+// Define APIError here for immediate compilation
+enum APIError: Error, LocalizedError {
+    case networkError
+    case invalidResponse
+    case unauthorized
+    case serverError
+    case badRequest(String)
+    case unknown(String)
+    case invalidURL
+    case decodingError
+    case encodingError
+    case noData
+    
+    var errorDescription: String? {
+        switch self {
+        case .networkError:
+            return "Network connection failed"
+        case .invalidResponse:
+            return "Invalid server response"
+        case .unauthorized:
+            return "Authentication required"
+        case .serverError:
+            return "Server error occurred"
+        case .badRequest(let message):
+            return "Bad request: \(message)"
+        case .unknown(let message):
+            return "Unknown error: \(message)"
+        case .invalidURL:
+            return "Invalid URL"
+        case .decodingError:
+            return "Failed to decode response"
+        case .encodingError:
+            return "Failed to encode request"
+        case .noData:
+            return "No data received"
+        }
+    }
 }
 
 class AppCatalogService: ObservableObject {

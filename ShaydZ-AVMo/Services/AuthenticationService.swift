@@ -1,27 +1,6 @@
 import Foundation
 import Combine
 
-// Define APIError here for immediate compilation
-enum APIError: Error, LocalizedError {
-    case networkError
-    case invalidResponse
-    case unauthorized
-    case serverError
-    case badRequest(String)
-    case unknown(String)
-    
-    var errorDescription: String? {
-        switch self {
-        case .networkError: return "Network error"
-        case .invalidResponse: return "Invalid response"
-        case .unauthorized: return "Unauthorized"
-        case .serverError: return "Server error"
-        case .badRequest(let msg): return "Bad request: \(msg)"
-        case .unknown(let msg): return "Unknown error: \(msg)"
-        }
-    }
-}
-
 /// Authentication service response models
 struct LoginResponse: Codable {
     let token: String
@@ -254,5 +233,44 @@ class AuthenticationService: ObservableObject {
                     .eraseToAnyPublisher()
             }
             .eraseToAnyPublisher()
+    }
+}
+
+/// Define APIError here for immediate compilation
+enum APIError: Error, LocalizedError {
+    case networkError
+    case invalidResponse
+    case unauthorized
+    case serverError
+    case badRequest(String)
+    case unknown(String)
+    case invalidURL
+    case decodingError
+    case encodingError
+    case noData
+    
+    var errorDescription: String? {
+        switch self {
+        case .networkError:
+            return "Network connection failed"
+        case .invalidResponse:
+            return "Invalid server response"
+        case .unauthorized:
+            return "Authentication required"
+        case .serverError:
+            return "Server error occurred"
+        case .badRequest(let message):
+            return "Bad request: \(message)"
+        case .unknown(let message):
+            return "Unknown error: \(message)"
+        case .invalidURL:
+            return "Invalid URL"
+        case .decodingError:
+            return "Failed to decode response"
+        case .encodingError:
+            return "Failed to encode request"
+        case .noData:
+            return "No data received"
+        }
     }
 }
