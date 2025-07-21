@@ -98,7 +98,7 @@ struct AppDetailsView: View {
     private func loadAppDetails() {
         isLoading = true
         
-        let appCatalogService = AppCatalogService.shared
+        let appCatalogService = SupabaseAppCatalogService.shared
         appCatalogService.getAppDetails(appId: app.id.uuidString)
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { completion in

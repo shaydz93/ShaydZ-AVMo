@@ -50,9 +50,9 @@ class AppLibraryViewModel: ObservableObject {
     @Published var selectedCategory: String?
     
     private var cancellables = Set<AnyCancellable>()
-    private let appCatalogService: AppCatalogService
+    private let appCatalogService: SupabaseAppCatalogService
     
-    init(appCatalogService: AppCatalogService = .shared) {
+    init(appCatalogService: SupabaseAppCatalogService = .shared) {
         self.appCatalogService = appCatalogService
         fetchCategories()
         fetchApps()

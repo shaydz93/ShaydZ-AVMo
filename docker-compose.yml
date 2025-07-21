@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api-gateway:
     build:
@@ -9,29 +7,9 @@ services:
       - "8080:8080"
     environment:
       - NODE_ENV=development
-      - AUTH_SERVICE_URL=http://auth-service:8081
-      - VM_ORCHESTRATOR_URL=http://vm-orchestrator:8082
-      - APP_CATALOG_URL=http://app-catalog:8083
+      - VM_ORCHESTRATOR_URL=http://vm-orchestrator:8084
     depends_on:
-      - auth-service
       - vm-orchestrator
-      - app-catalog
-    networks:
-      - avmo-network
-    restart: unless-stopped
-
-  auth-service:
-    build:
-      context: ./backend/auth-service
-      dockerfile: Dockerfile
-    ports:
-      - "8081:8081"
-    environment:
-      - NODE_ENV=development
-      - JWT_SECRET=your_jwt_secret_key_here
-      - DB_CONNECTION_STRING=mongodb://mongo:27017/auth
-    depends_on:
-      - mongo
     networks:
       - avmo-network
     restart: unless-stopped
@@ -41,11 +19,12 @@ services:
       context: ./backend/vm-orchestrator
       dockerfile: Dockerfile
     ports:
-      - "8082:8082"
+      - "8084:8084"
     environment:
       - PYTHONUNBUFFERED=1
-      - AUTH_SERVICE_URL=http://auth-service:8081
+      - PORT=8084
       - DB_CONNECTION_STRING=mongodb://mongo:27017/vms
+      - JWT_SECRET=your_jwt_secret_key_here
     depends_on:
       - mongo
     networks:

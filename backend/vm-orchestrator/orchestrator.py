@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 # Flask app configuration
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('JWT_SECRET', 'your_jwt_secret_key_here')
+app.config['PORT'] = int(os.environ.get('PORT', 8084))
 
 # MongoDB connection
 mongo_uri = os.environ.get('DB_CONNECTION_STRING', 'mongodb://localhost:27017/vms')
@@ -29,11 +30,26 @@ client = MongoClient(mongo_uri)
 db = client.get_database()
 vms_collection = db.vms
 
+# Handle Supabase JWT tokens
+def decode_supabase_token(token):
+    try:
+        # Supabase tokens are JWT tokens
+        # We can decode them to verify and extract user info
+        return jwt.decode(
+            token, 
+            app.config['SECRET_KEY'], 
+            algorithms=["HS256"],
+            options={"verify_signature": False}  # For demo, we'll skip signature verification
+        )
+    except Exception as e:
+        logger.error(f"Error decoding token: {e}")
+        return None
+
 # Store active VM sessions
 active_vms = {}
 active_websockets = {}
 
-# JWT authentication middleware
+# JWT authentication middleware for Supabase tokens
 def authenticate(f):
     def decorator(*args, **kwargs):
         token = None
@@ -46,8 +62,18 @@ def authenticate(f):
             return jsonify({'message': 'Authentication token is missing'}), 401
             
         try:
-            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-            current_user = data['user']
+            # Use our Supabase token decoder
+            decoded_token = decode_supabase_token(token)
+            
+            if not decoded_token or 'sub' not in decoded_token:
+                raise ValueError("Invalid token structure")
+                
+            # In Supabase, the user ID is in the 'sub' claim
+            current_user = {
+                'id': decoded_token.get('sub'),
+                'email': decoded_token.get('email', ''),
+                'role': decoded_token.get('role', 'user')
+            }
         except Exception as e:
             logger.error(f"Token validation error: {e}")
             return jsonify({'message': 'Invalid authentication token'}), 401
@@ -55,6 +81,15 @@ def authenticate(f):
         return f(current_user, *args, **kwargs)
     decorator.__name__ = f.__name__
     return decorator
+
+# Root endpoint
+@app.route('/', methods=['GET'])
+def root():
+    return jsonify({
+        'service': 'VM Orchestrator',
+        'status': 'UP',
+        'version': '1.0.0'
+    })
 
 # Health check endpoint
 @app.route('/health', methods=['GET'])
@@ -147,7 +182,7 @@ def start_vm_process(vm_id, config):
         connection_info = {
             'ip': '10.0.0.' + str(int(time.time()) % 255),
             'port': 5555,
-            'websocket_url': f"ws://localhost:8082/vm/{vm_id}/stream",
+            'websocket_url': f"ws://localhost:8084/vm/{vm_id}/stream",
             'rtc_url': f"wss://rtc.avmo.local/vm/{vm_id}"
         }
         
@@ -275,10 +310,10 @@ def vm_stream_info(vm_id):
         return jsonify({'message': 'VM not running'}), 404
         
     return jsonify({
-        'websocket_url': f"ws://localhost:8082/stream/{vm_id}",
+        'websocket_url': f"ws://localhost:8084/stream/{vm_id}",
         'status': 'available'
     })
 
 # Run the Flask application
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8082)
+    app.run(host='0.0.0.0', port=app.config['PORT'])

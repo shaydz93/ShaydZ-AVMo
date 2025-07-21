@@ -24,7 +24,10 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Authentication middleware
+// This API Gateway now only proxies to the VM Orchestrator
+// All other services (Auth, App Catalog) have been migrated to Supabase
+
+// Authentication middleware - validates JWT tokens from Supabase
 const authenticateJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -59,21 +62,12 @@ app.use('/api/auth', createProxyMiddleware({
 }));
 
 // Protected routes below
-// VM Orchestrator service proxy
+// VM Orchestrator service proxy (only service that remains in the backend)
 app.use('/api/vm', authenticateJWT, createProxyMiddleware({ 
-  target: process.env.VM_ORCHESTRATOR_URL || 'http://localhost:8082',
+  target: process.env.VM_ORCHESTRATOR_URL || 'http://localhost:8084',
   changeOrigin: true,
   pathRewrite: {
     '^/api/vm': '/', 
-  },
-}));
-
-// App catalog service proxy
-app.use('/api/apps', authenticateJWT, createProxyMiddleware({ 
-  target: process.env.APP_CATALOG_URL || 'http://localhost:8083',
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/apps': '/', 
   },
 }));
 

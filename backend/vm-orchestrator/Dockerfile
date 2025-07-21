@@ -29,6 +29,6 @@ RUN pip3 install -r requirements.txt
 WORKDIR /app
 COPY . .
 
-EXPOSE 8082
+EXPOSE 8084
 
 CMD ["python3", "orchestrator.py"]
