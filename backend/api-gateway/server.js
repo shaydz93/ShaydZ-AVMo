@@ -1,4 +1,5 @@
 const express = require('express');
+
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const morgan = require('morgan');
 const helmet = require('helmet');
@@ -52,23 +53,21 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'UP', timestamp: new Date() });
 });
 
-// Auth service proxy - public endpoints
-app.use('/api/auth', createProxyMiddleware({ 
-  target: process.env.AUTH_SERVICE_URL || 'http://localhost:8081',
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/auth': '/', 
-  },
-}));
-
-// Protected routes below
-// VM Orchestrator service proxy (only service that remains in the backend)
+// VM Orchestrator service proxy (all endpoints protected)
 app.use('/api/vm', authenticateJWT, createProxyMiddleware({ 
-  target: process.env.VM_ORCHESTRATOR_URL || 'http://localhost:8084',
+  target: process.env.VM_ORCHESTRATOR_URL || 'http://vm-orchestrator:8084',
   changeOrigin: true,
   pathRewrite: {
     '^/api/vm': '/', 
   },
+  onProxyReq: (proxyReq, req, res) => {
+    if (req.body) {
+      const bodyData = JSON.stringify(req.body);
+      proxyReq.setHeader('Content-Type', 'application/json');
+      proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+      proxyReq.write(bodyData);
+    }
+  }
 }));
 
 // Error handling

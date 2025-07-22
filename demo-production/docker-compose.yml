@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # Simple API Gateway service
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - AUTH_SERVICE_URL=http://auth-service:8081
+      - VM_ORCHESTRATOR_URL=http://vm-orchestrator:8082
+      - APP_CATALOG_URL=http://app-catalog:8083
+      - JWT_SECRET=demo-jwt-secret-key-for-testing-only
+    networks:
+      - avmo-network
+    depends_on:
+      - auth-service
+      - vm-orchestrator
+      - app-catalog
+
+  # Authentication service
+  auth-service:
+    build:
+      context: ./backend/auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+      - JWT_SECRET=demo-jwt-secret-key-for-testing-only
+      - JWT_EXPIRATION=3600
+      - MONGO_URI=mongodb://mongo:27017/auth
+    networks:
+      - avmo-network
+    depends_on:
+      - mongo
+
+  # VM orchestrator service
+  vm-orchestrator:
+    build:
+      context: ./backend/vm-orchestrator
+    ports:
+      - "8082:8082"
+    environment:
+      - PORT=8082
+      - JWT_SECRET=demo-jwt-secret-key-for-testing-only
+      - MONGO_URI=mongodb://mongo:27017/vms
+    networks:
+      - avmo-network
+    depends_on:
+      - mongo
+
+  # App catalog service
+  app-catalog:
+    build:
+      context: ./backend/app-catalog
+    ports:
+      - "8083:8083"
+    environment:
+      - PORT=8083
+      - JWT_SECRET=demo-jwt-secret-key-for-testing-only
+      - MONGO_URI=mongodb://mongo:27017/apps
+    networks:
+      - avmo-network
+    depends_on:
+      - mongo
+
+  # MongoDB for data storage
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - avmo-network
+
+networks:
+  avmo-network:
+    driver: bridge
+
+volumes:
+  mongo_data:
+    driver: local

@@ -8,7 +8,7 @@
 import Foundation
 
 /// Shared API error types used across all services
-enum APIError: Error, LocalizedError {
+public enum APIError: Error, LocalizedError {
     case networkError
     case invalidResponse
     case unauthorized
@@ -20,7 +20,7 @@ enum APIError: Error, LocalizedError {
     case encodingError
     case noData
     
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .networkError:
             return "Network connection failed"

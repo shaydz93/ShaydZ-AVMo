@@ -32,28 +32,12 @@ services:
     privileged: true  # Needed for virtualization
     restart: unless-stopped
 
-  app-catalog:
-    build:
-      context: ./backend/app-catalog
-      dockerfile: Dockerfile
-    ports:
-      - "8083:8083"
-    environment:
-      - NODE_ENV=development
-      - AUTH_SERVICE_URL=http://auth-service:8081
-      - DB_CONNECTION_STRING=mongodb://mongo:27017/apps
-    depends_on:
-      - mongo
-    networks:
-      - avmo-network
-    restart: unless-stopped
-
   mongo:
     image: mongo:latest
     ports:
       - "27017:27017"
     volumes:
-      - mongo_data:/data/db
+      - mongo-data:/data/db
     networks:
       - avmo-network
     restart: unless-stopped
@@ -63,5 +47,5 @@ networks:
     driver: bridge
 
 volumes:
-  mongo_data:
+  mongo-data:
     driver: local
