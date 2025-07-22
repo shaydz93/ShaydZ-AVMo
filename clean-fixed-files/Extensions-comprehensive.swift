@@ -49,6 +49,22 @@ extension View {
             }
         }
     }
+    
+    /// API Error alert extension for backward compatibility
+    public func apiErrorAlert(
+        error: Binding<ShaydZAVMo_APIError?>,
+        title: String = "Error"
+    ) -> some View {
+        self.alert(title, isPresented: .constant(error.wrappedValue != nil)) {
+            Button("OK") {
+                error.wrappedValue = nil
+            }
+        } message: {
+            if let apiError = error.wrappedValue {
+                Text(apiError.localizedDescription)
+            }
+        }
+    }
 }
 
 /// VM Status color extension

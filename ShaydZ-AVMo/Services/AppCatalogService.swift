@@ -67,45 +67,6 @@ struct AppUploadResponse: Codable {
     let lastUpdated: String
 }
 
-// Define APIError here for immediate compilation
-enum APIError: Error, LocalizedError {
-    case networkError
-    case invalidResponse
-    case unauthorized
-    case serverError
-    case badRequest(String)
-    case unknown(String)
-    case invalidURL
-    case decodingError
-    case encodingError
-    case noData
-    
-    var errorDescription: String? {
-        switch self {
-        case .networkError:
-            return "Network connection failed"
-        case .invalidResponse:
-            return "Invalid server response"
-        case .unauthorized:
-            return "Authentication required"
-        case .serverError:
-            return "Server error occurred"
-        case .badRequest(let message):
-            return "Bad request: \(message)"
-        case .unknown(let message):
-            return "Unknown error: \(message)"
-        case .invalidURL:
-            return "Invalid URL"
-        case .decodingError:
-            return "Failed to decode response"
-        case .encodingError:
-            return "Failed to encode request"
-        case .noData:
-            return "No data received"
-        }
-    }
-}
-
 class AppCatalogService: ObservableObject {
     static let shared = AppCatalogService()
     private let networkService = AppCatalogNetworkService.shared
@@ -131,10 +92,58 @@ class AppCatalogService: ObservableObject {
 
     /// Load available apps from backend
     func fetchAvailableApps() -> AnyPublisher<[AppModel], APIError> {
-        // Mock implementation for compilation
+        // Mock implementation with enhanced AppModel properties
         let mockApps = [
-            AppModel(id: UUID(), name: "Demo App", description: "Demo app", iconName: "app.fill"),
-            AppModel(id: UUID(), name: "Test App", description: "Test app", iconName: "gear")
+            AppModel(
+                name: "Microsoft Word",
+                description: "Create, edit, and share documents with real-time collaboration",
+                iconName: "doc.text.fill",
+                category: "Productivity",
+                version: "16.0.1",
+                size: "145 MB",
+                isInstalled: true,
+                isRunning: false
+            ),
+            AppModel(
+                name: "Adobe Photoshop",
+                description: "Professional image editing and graphic design software",
+                iconName: "photo.fill",
+                category: "Design",
+                version: "2024.1",
+                size: "2.1 GB",
+                isInstalled: false,
+                isRunning: false
+            ),
+            AppModel(
+                name: "Chrome",
+                description: "Fast, secure web browser built for the modern web",
+                iconName: "globe",
+                category: "Internet",
+                version: "118.0",
+                size: "89 MB",
+                isInstalled: true,
+                isRunning: true
+            ),
+            AppModel(
+                name: "Slack",
+                description: "Team communication and collaboration platform",
+                iconName: "message.fill",
+                category: "Communication",
+                version: "4.35.0",
+                size: "156 MB",
+                isInstalled: false,
+                isRunning: false
+            ),
+            AppModel(
+                name: "VS Code",
+                description: "Lightweight but powerful code editor",
+                iconName: "curlybraces",
+                category: "Development",
+                version: "1.84.2",
+                size: "234 MB",
+                isInstalled: true,
+                isRunning: false
+            )
         ]
         
         return Just(mockApps)
@@ -150,7 +159,7 @@ class AppCatalogService: ObservableObject {
     
     /// Get app categories
     func getCategories() -> AnyPublisher<[String], APIError> {
-        let mockCategories = ["Productivity", "Games", "Utilities", "Entertainment"]
+        let mockCategories = ["Productivity", "Design", "Internet", "Communication", "Development", "Entertainment", "Utilities"]
         return Just(mockCategories)
             .setFailureType(to: APIError.self)
             .eraseToAnyPublisher()

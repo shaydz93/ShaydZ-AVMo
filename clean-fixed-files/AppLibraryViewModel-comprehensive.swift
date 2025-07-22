@@ -168,6 +168,21 @@ public class ShaydZAVMo_AppLibraryViewModel: ObservableObject {
         selectedApp = nil
     }
     
+    /// Select a category
+    public func selectCategory(_ category: String) {
+        selectedCategory = selectedCategory == category ? nil : category
+    }
+    
+    /// Clear search text
+    public func clearSearch() {
+        searchText = ""
+    }
+    
+    /// Search apps with current search text
+    public func searchApps() {
+        searchApps(query: searchText, category: selectedCategory)
+    }
+    
     // MARK: - Computed Properties
     
     public var hasActiveVMSession: Bool {
@@ -185,6 +200,19 @@ public class ShaydZAVMo_AppLibraryViewModel: ObservableObject {
         let installed = installedApps.count
         let available = total - installed
         return (total: total, installed: installed, available: available)
+    }
+    
+    /// Apps to display in the UI (filtered apps)
+    public var apps: [ShaydZAVMo_AppModel] {
+        return filteredApps.isEmpty ? availableApps : filteredApps
+    }
+    
+    /// Current error for backward compatibility
+    public var error: ShaydZAVMo_APIError? {
+        if let errorMessage = errorMessage {
+            return ShaydZAVMo_APIError.unknown(errorMessage)
+        }
+        return nil
     }
     
     // MARK: - Private Methods

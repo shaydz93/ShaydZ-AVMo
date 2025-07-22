@@ -77,4 +77,31 @@ class AppLibraryViewModel: ObservableObject {
         searchText = ""
         fetchApps()
     }
+    
+    func installApp(_ app: AppModel) {
+        isLoading = true
+        
+        // Mock install app functionality
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.isLoading = false
+            // Simulate successful installation
+            print("App \(app.name) installed successfully")
+        }
+    }
+    
+    func uninstallApp(_ app: AppModel) {
+        isLoading = true
+        
+        // Mock uninstall app functionality
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.isLoading = false
+            // Simulate successful uninstallation
+            print("App \(app.name) uninstalled successfully")
+        }
+    }
+    
+    // Computed property for backward compatibility
+    var errorMessage: String? {
+        return error?.localizedDescription
+    }
 }
