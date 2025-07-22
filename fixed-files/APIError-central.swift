@@ -10,6 +10,7 @@ public enum ShaydZ_APIError: Error, Equatable {
     case noData
     case unauthorized
     case notFound
+    case badRequest
     case unknown(String)
     
     public static func == (lhs: ShaydZ_APIError, rhs: ShaydZ_APIError) -> Bool {
@@ -22,6 +23,7 @@ public enum ShaydZ_APIError: Error, Equatable {
              (.noData, .noData),
              (.unauthorized, .unauthorized),
              (.notFound, .notFound),
+             (.badRequest, .badRequest),
              (.unknown, .unknown):
             return true
         default:
@@ -39,6 +41,7 @@ public enum ShaydZ_APIError: Error, Equatable {
         case .noData: return "No data received from the server"
         case .unauthorized: return "Authentication required"
         case .notFound: return "Resource not found"
+        case .badRequest: return "Bad request - invalid parameters"
         case .unknown(let message): return "Unknown error: \(message)"
         }
     }
