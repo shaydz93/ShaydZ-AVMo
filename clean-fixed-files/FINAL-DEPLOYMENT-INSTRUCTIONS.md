@@ -9,18 +9,19 @@ This package contains **15 fully corrected Swift files** that resolve all compil
 ### Core Infrastructure
 - `APIConfig-central.swift` - Centralized API configuration
 - `APIError-central.swift` - Unified error handling (ShaydZ_APIError)
-- `NetworkService-fixed.swift` - **NEW** - Fixes badRequest enum conflicts
+- `NetworkService-fixed.swift` - Fixed badRequest enum conflicts
+- `UserProfile-central.swift` - **NEW** - Centralized user profile model
 
 ### Service Layer (All Fixed)
 - `AppCatalogService-corrected.swift` - App catalog functionality
 - `AppCatalogSupabaseService-corrected.swift` - Supabase integration
-- `AuthenticationService-fixed.swift` - **UPDATED** - Removed conflicting UserProfile alias
-- `SupabaseAuthService-fixed.swift` - Auth service implementation
+- `AuthenticationService-fixed.swift` - **UPDATED** - Uses central UserProfile, fixed nil contexts
+- `SupabaseAuthService-fixed.swift` - **UPDATED** - Uses central UserProfile
 - `VirtualMachineService-unique.swift` - VM management
 
 ### Models & ViewModels
 - `AppModel-corrected.swift` - Complete app model with all properties
-- `AppLibraryViewModel-corrected.swift` - **FIXED** - Removed recursive type alias
+- `AppLibraryViewModel-corrected.swift` - Removed recursive type alias
 - `SupabaseVMSession-unique.swift` - VM session handling
 - `VMStatus-final.swift` - VM status tracking
 
@@ -42,9 +43,11 @@ This package contains **15 fully corrected Swift files** that resolve all compil
 ## 🔧 Key Fixes Applied
 
 ### Latest Fixes (This Round)
+- ✅ UserProfile-central.swift created as single source of truth
+- ✅ AuthenticationService duplicate UserProfile removed, nil contexts fixed
+- ✅ SupabaseAuthService duplicate UserProfile removed
 - ✅ NetworkService badRequest enum conflicts resolved
-- ✅ AuthenticationService UserProfile redeclaration removed
-- ✅ AppLibraryViewModel recursive type alias eliminated
+- ✅ All ambiguous type lookups eliminated
 
 ### Previous Fixes
 - ✅ All duplicate APIError declarations consolidated
@@ -55,8 +58,8 @@ This package contains **15 fully corrected Swift files** that resolve all compil
 
 ## 📊 Compilation Status
 
-**Before**: 30+ compilation errors across multiple files
-**After**: Clean compilation with this package
+**Before**: ShaydZ_UserProfile ambiguous type lookup errors across multiple files
+**After**: Clean compilation with centralized user profile model
 
 ## 🎭 Architecture Preserved
 
@@ -84,6 +87,6 @@ When deployment is successful, you should see:
 
 ---
 
-**Package Created**: $(date)
-**Total Files**: 15 Swift files + documentation
+**Package Created**: July 22, 2025
+**Total Files**: 16 Swift files + documentation
 **Status**: Production Ready ✨

@@ -127,29 +127,3 @@ public struct ShaydZ_SupabaseUserProfile: Codable {
         self.updatedAt = updatedAt
     }
 }
-
-public struct ShaydZ_UserProfile: Codable {
-    public let id: String
-    public let username: String
-    public let email: String
-    public let firstName: String?
-    public let lastName: String?
-    public let role: String?
-    public let isActive: Bool
-    public let biometricEnabled: Bool
-    public let lastLogin: Date?
-    public let createdAt: Date?
-    
-    public init(id: String, username: String, email: String, firstName: String?, lastName: String?, role: String?, isActive: Bool, biometricEnabled: Bool, lastLogin: Date?, createdAt: Date?) {
-        self.id = id
-        self.username = username
-        self.email = email
-        self.firstName = firstName
-        self.lastName = lastName
-        self.role = role
-        self.isActive = isActive
-        self.biometricEnabled = biometricEnabled
-        self.lastLogin = lastLogin
-        self.createdAt = createdAt
-    }
-}
