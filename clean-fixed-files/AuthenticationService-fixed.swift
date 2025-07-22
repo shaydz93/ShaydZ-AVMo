@@ -162,6 +162,7 @@ public struct ShaydZ_UserProfile: Identifiable, Codable {
     }
 }
 
-// Type aliases for backward compatibility
+// Type alias for backward compatibility
 public typealias AuthenticationService = ShaydZ_AuthenticationService
-public typealias UserProfile = ShaydZ_UserProfile
+// Note: UserProfile type alias removed to avoid redeclaration conflicts
+// Use ShaydZ_UserProfile directly or import from the appropriate module
