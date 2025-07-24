@@ -8,8 +8,27 @@ services:
     environment:
       - NODE_ENV=development
       - VM_ORCHESTRATOR_URL=http://vm-orchestrator:8084
+      - AI_SERVICE_URL=http://ai-service:8085
     depends_on:
       - vm-orchestrator
+      - ai-service
+    networks:
+      - avmo-network
+    restart: unless-stopped
+
+  ai-service:
+    build:
+      context: ./backend/ai-service
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    environment:
+      - NODE_ENV=development
+      - PORT=8085
+      - DB_CONNECTION_STRING=mongodb://mongo:27017/ai_service
+      - JWT_SECRET=your_jwt_secret_key_here
+    depends_on:
+      - mongo
     networks:
       - avmo-network
     restart: unless-stopped
