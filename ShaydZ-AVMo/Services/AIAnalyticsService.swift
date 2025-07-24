@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftUI
 
 /// Service for AI analytics and performance monitoring
 @MainActor
