@@ -70,6 +70,39 @@ app.use('/api/vm', authenticateJWT, createProxyMiddleware({
   }
 }));
 
+// AI Service proxy (recommendations public, other endpoints protected)
+app.use('/api/ai/recommendations', createProxyMiddleware({
+  target: process.env.AI_SERVICE_URL || 'http://ai-service:8085',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/ai': '/',
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    if (req.body) {
+      const bodyData = JSON.stringify(req.body);
+      proxyReq.setHeader('Content-Type', 'application/json');
+      proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+      proxyReq.write(bodyData);
+    }
+  }
+}));
+
+app.use('/api/ai', authenticateJWT, createProxyMiddleware({
+  target: process.env.AI_SERVICE_URL || 'http://ai-service:8085',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/ai': '/',
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    if (req.body) {
+      const bodyData = JSON.stringify(req.body);
+      proxyReq.setHeader('Content-Type', 'application/json');
+      proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+      proxyReq.write(bodyData);
+    }
+  }
+}));
+
 // Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
