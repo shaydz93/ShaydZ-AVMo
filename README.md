@@ -44,6 +44,38 @@ ShaydZ AVMo is a cutting-edge virtual mobile infrastructure platform that enable
 - Python 3.8+
 - Xcode (for iOS development)
 
+### ⚠️ Security Configuration (IMPORTANT!)
+
+**Before running the application, you MUST configure environment variables:**
+
+1. **Backend Services**: Each backend service requires environment variables. Copy the example files:
+   ```bash
+   # For each backend service directory:
+   cp backend/api-gateway/.env.example backend/api-gateway/.env
+   cp backend/auth-service/.env.example backend/auth-service/.env
+   cp backend/ai-service/.env.example backend/ai-service/.env
+   cp backend/vm-orchestrator/.env.example backend/vm-orchestrator/.env
+   ```
+
+2. **Set Strong Secrets**: Edit each `.env` file and replace placeholder values:
+   - `JWT_SECRET`: Use a strong random string (minimum 32 characters)
+   - `MONGO_URI` / `DB_CONNECTION_STRING`: Your MongoDB connection string
+   - `SUPABASE_URL` and `SUPABASE_ANON_KEY`: From your Supabase project
+
+3. **iOS App**: Copy and configure Supabase credentials:
+   ```bash
+   cp .env.supabase.example .env.supabase
+   # Edit .env.supabase with your actual Supabase credentials
+   ```
+
+**⚠️ WARNING**: Never commit `.env` files or `.env.supabase` to git. These files contain secrets!
+
+### 🔐 Generating a Secure JWT Secret
+```bash
+# Use openssl to generate a secure secret
+openssl rand -base64 32
+```
+
 ### 1. Clone Repository
 ```bash
 git clone https://github.com/shaydz93/ShaydZ-AVMo.git

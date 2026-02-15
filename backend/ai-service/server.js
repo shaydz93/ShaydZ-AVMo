@@ -30,6 +30,11 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// SECURITY: JWT_SECRET must be set via environment variable - no hardcoded defaults
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required. Set a strong secret key.');
+}
+
 // Authentication middleware - validates JWT tokens
 const authenticateJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -37,7 +42,7 @@ const authenticateJWT = (req, res, next) => {
   if (authHeader) {
     const token = authHeader.split(' ')[1];
 
-    jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key_here', (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
       if (err) {
         return res.sendStatus(403);
       }
@@ -56,7 +61,7 @@ const optionalAuth = (req, res, next) => {
 
   if (authHeader) {
     const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key_here', (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
       if (!err) {
         req.user = user;
       }
@@ -65,15 +70,23 @@ const optionalAuth = (req, res, next) => {
   next();
 };
 
+// SECURITY: DB_CONNECTION_STRING must be set via environment variable - no hardcoded defaults
+if (!process.env.DB_CONNECTION_STRING) {
+  throw new Error('DB_CONNECTION_STRING environment variable is required. Example: mongodb://mongo:27017/ai_service');
+}
+
 // MongoDB connection
 let db;
-MongoClient.connect(process.env.DB_CONNECTION_STRING || 'mongodb://mongo:27017/ai_service')
+MongoClient.connect(process.env.DB_CONNECTION_STRING)
   .then(client => {
     console.log('Connected to MongoDB');
     db = client.db();
     app.locals.db = db;
   })
-  .catch(error => console.error('MongoDB connection error:', error));
+  .catch(error => {
+    console.error('MongoDB connection error:', error);
+    process.exit(1);
+  });
 
 // Public routes
 app.get('/health', (req, res) => {

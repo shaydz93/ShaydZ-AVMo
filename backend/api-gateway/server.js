@@ -28,6 +28,11 @@ app.use(limiter);
 // This API Gateway now only proxies to the VM Orchestrator
 // All other services (Auth, App Catalog) have been migrated to Supabase
 
+// SECURITY: JWT_SECRET must be set via environment variable - no hardcoded defaults
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required. Set a strong secret key.');
+}
+
 // Authentication middleware - validates JWT tokens from Supabase
 const authenticateJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -35,7 +40,7 @@ const authenticateJWT = (req, res, next) => {
   if (authHeader) {
     const token = authHeader.split(' ')[1];
 
-    jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key_here', (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
       if (err) {
         return res.sendStatus(403);
       }

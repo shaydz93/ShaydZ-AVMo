@@ -8,8 +8,17 @@ const bcrypt = require('bcryptjs');
 const app = express();
 const PORT = process.env.PORT || 8081;
 
-// MongoDB setup
-const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/auth';
+// SECURITY: MONGO_URI must be set via environment variable - no hardcoded defaults
+const mongoUri = process.env.MONGO_URI;
+if (!mongoUri) {
+  throw new Error('MONGO_URI environment variable is required. Example: mongodb://localhost:27017/auth');
+}
+
+// SECURITY: JWT_SECRET must be set via environment variable
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required. Set a strong secret key.');
+}
+
 let db;
 
 // Connect to MongoDB
@@ -24,9 +33,15 @@ async function connectToMongo() {
     await db.collection('users').createIndex({ email: 1 }, { unique: true });
     
     // Create demo user if none exists
+    // SECURITY WARNING: These are demo credentials for development only!
+    // In production, remove this auto-creation or use strong generated passwords
     const userCount = await db.collection('users').countDocuments();
     if (userCount === 0) {
-      const hashedPassword = await bcrypt.hash('password', 10);
+      const demoPassword = process.env.DEMO_PASSWORD || 'password';
+      if (demoPassword === 'password') {
+        console.warn('⚠️  SECURITY WARNING: Using default demo password. Set DEMO_PASSWORD env var for production!');
+      }
+      const hashedPassword = await bcrypt.hash(demoPassword, 10);
       await db.collection('users').insertOne({
         username: 'demo',
         email: 'demo@shaydz-avmo.io',
@@ -35,7 +50,8 @@ async function connectToMongo() {
         lastName: 'User',
         role: 'user',
         isActive: true,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        isDemoUser: true  // Mark as demo user for easy cleanup
       });
       console.log('Demo user created');
     }
@@ -101,6 +117,7 @@ app.post('/login', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRATION || '1h' }
     );
+    // SECURITY: Always use strong JWT_SECRET from environment variable
     
     // Update last login
     await db.collection('users').updateOne(

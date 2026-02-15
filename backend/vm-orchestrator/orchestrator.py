@@ -21,11 +21,17 @@ logger = logging.getLogger(__name__)
 
 # Flask app configuration
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('JWT_SECRET', 'your_jwt_secret_key_here')
+# SECURITY: JWT_SECRET must be set via environment variable - no hardcoded defaults
+jwt_secret = os.environ.get('JWT_SECRET')
+if not jwt_secret:
+    raise ValueError("JWT_SECRET environment variable is required. Set a strong secret key.")
+app.config['SECRET_KEY'] = jwt_secret
 app.config['PORT'] = int(os.environ.get('PORT', 8084))
 
-# MongoDB connection
-mongo_uri = os.environ.get('DB_CONNECTION_STRING', 'mongodb://localhost:27017/vms')
+# SECURITY: DB_CONNECTION_STRING must be set via environment variable - no hardcoded defaults
+mongo_uri = os.environ.get('DB_CONNECTION_STRING')
+if not mongo_uri:
+    raise ValueError("DB_CONNECTION_STRING environment variable is required. Example: mongodb://localhost:27017/vms")
 client = MongoClient(mongo_uri)
 db = client.get_database()
 vms_collection = db.vms
